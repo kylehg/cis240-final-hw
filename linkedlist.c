@@ -84,7 +84,9 @@ list_item *update(list_item *head, char *name, int number) {
    * If the item does exist, update it. 
    * (If the new value would make the item number negative, just zero it.)
    */
-  item->number = (item->number + number < 0) 0 : item->number + number;
+  printf("%s: %d (old), %d (update), ", item->name, item->number, number);
+  item->number = (item->number + number < 0) ? 0 : item->number + number;
+  printf("%d (new)\n", item->number);
   
 
   /*
@@ -104,7 +106,7 @@ list_item *update(list_item *head, char *name, int number) {
  * @return A pointer to the new head of the list, which may not have changed.
  */
 list_item *delete(list_item *head, list_item *item) {
-  list_item prev_item, next_item;
+  list_item *prev_item, *next_item;
 
   if (head == NULL || item == NULL)
     return head;
@@ -129,10 +131,10 @@ list_item *delete(list_item *head, list_item *item) {
 
 
 void print_list(list_item *head) {
-  list_item item = head;
+  list_item *item = head;
 
   while (item) {
-    print("%s: %d\n", item->name, item->number);
+    printf("%s: %d\n", item->name, item->number);
     item = item->next;
   }
 }

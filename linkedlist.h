@@ -13,4 +13,5 @@ typedef struct list_item_def {
 
 list_item *lookup(list_item *head, char *name);
 list_item *update(list_item *head, char *name, int number);
+list_item *delete(list_item *head, list_item *item);
 void print_list(list_item *head);
