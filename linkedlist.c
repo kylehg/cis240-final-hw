@@ -32,8 +32,6 @@ list_item *lookup(list_item *head, char *name) {
   return NULL;
 }
 
-
-
 /**
  * update(): Update the give list_item count.
  *
@@ -92,30 +90,42 @@ list_item *update(list_item *head, char *name, int number) {
   /*
    * If the item is now at zero, delete it.
    */
-  if (item->number == 0) {
-    list_item prev_item, next_item;
-
-    prev_item = item->prev;
-    next_item = item->next;
-
-    if (prev_item)
-      prev_item->next = item->next;
-       
-    if (next_item)
-      next_item->prev = item->prev;
-
-    free(item->name);
-    free(item);
-
-    if (item == head)
-      return next_item;
-    else
-      return head;
-  }
+  if (item->number == 0)
+    head = delete(head, item);
 
   return head;
 }
 
+/**
+ * delete(): Delete a list_item
+ *
+ * @param head The first element in the list.
+ * @param item The list_item to delete.
+ * @return A pointer to the new head of the list, which may not have changed.
+ */
+list_item *delete(list_item *head, list_item *item) {
+  list_item prev_item, next_item;
+
+  if (head == NULL || item == NULL)
+    return head;
+
+  prev_item = item->prev;
+  next_item = item->next;
+
+  if (prev_item)
+    prev_item->next = item->next;
+     
+  if (next_item)
+    next_item->prev = item->prev;
+
+  free(item->name);
+  free(item);
+
+  if (item == head)
+    return next_item;
+  else
+    return head;  
+}
 
 
 void print_list(list_item *head) {
