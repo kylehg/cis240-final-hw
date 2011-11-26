@@ -54,6 +54,10 @@ list_item *update(list_item *head, char *name, int number) {
    */
   if (item == NULL) {
 
+    // Can't add an item with <1 count
+    if (number < 1)
+      return head;
+
     // Alocate and check the item struct itself.
     item = malloc(sizeof(*item));    
     if (item == NULL) {
