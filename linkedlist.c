@@ -52,7 +52,7 @@ list_item *update(list_item *head, char *name, int number) {
   /*
    * If the requested item does not already exist, create it.
    */
-  if (item == NULL) {
+  if (item == NULL && number > 0) {
 
     // Alocate and check the item struct itself.
     item = malloc(sizeof(*item));    
