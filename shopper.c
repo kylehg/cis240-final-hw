@@ -5,9 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "linkedlist.h"
 
 #define MAX_LINE_LENGTH 200
+
+void strtoupper(char *str) {
+  int i;
+  for (i = 0; str[i]; i++)
+    str[i] = toupper(str[i]);
+}
 
 int main(int argc, char *argv[]) {
   FILE *input_file;
@@ -39,6 +46,7 @@ int main(int argc, char *argv[]) {
     // Check for add command
     if (sscanf(line, "%s %s", name, num_str) == 2) {
       number = atoi(num_str);
+      strtoupper(name);
       head = update(head, name, number);
       printf("...update(head, %s, %d\n", name, number);
     } else {
