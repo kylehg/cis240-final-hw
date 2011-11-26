@@ -88,9 +88,7 @@ list_item *update(list_item *head, char *name, int number) {
    * If the item does exist, update it. 
    * (If the new value would make the item number negative, just zero it.)
    */
-  printf("%s: %d (old), %d (update), ", item->name, item->number, number);
   item->number = (item->number + number < 0) ? 0 : item->number + number;
-  printf("%d (new)\n", item->number);
   
 
   /*
