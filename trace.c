@@ -99,12 +99,13 @@ int main(int argc, char *argv[]) {
   // For each input file
   //  for (i = 2; i < argc; i++) {
 
-    input_file = fopen(argv[i], "r");
+    input_file = fopen(argv[2], "r");
 
-
+    /*    printf("sizeof(int)=%lx\n", sizeof(int));
+	  printf("sizeof(int)=%lx\n", sizeof(long));*/
     // Read word-by-word
-    while (fread(&word, 16, 1, input_file) == 1) {
-      printf ("%16x\n", word);
+    while (fread(&word, 4, 1, input_file) == 1) {
+      printf ("%x\n", word);
     }
     printf("Done in while\n");
     fclose(input_file);
