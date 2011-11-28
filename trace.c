@@ -29,11 +29,8 @@
 #define I_5_3(i)  (((i) >> 3) & 0x7) // For 3-bit secondary opcodes
 #define I_11(i)   (((i) >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
-
-
 int mem[MEM_LEN];
 int reg[REG_LEN];
-
 
 /**
  * print_lc4_state(): Prints the LC4 memory and register state to a flat file.
@@ -45,43 +42,31 @@ int reg[REG_LEN];
  * @param: *f A file opened with write privileges.
  */
 void print_lc4_state(FILE *f) {
-
   int r, m, is_nop_sequence;
-  
   fputs("\n>>> REGISTER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<\n", f);
-
   for (r = 0; r < REG_LEN; r++)
     fprintf(f, "R%d: %x :: ", r, reg[r]);
-
   fputs("\n\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<<<\n", f);
-
   for (m = 0; m < MEM_LEN; m++) {
-
     // Not in a NOP sequence:
     if (!is_nop_sequence) {
       fprintf(f, "MEM[%x]:    %x\n", m, mem[m]);
-
       // Transition into NOP sequence
       if (mem[m] == 0) {
         is_nop_sequence = 1;
         fputs("...\n", f);
       }      
     } 
-
     // In a NOP sequence, transition to an OP sequence
     else if (mem[m] != 0) {
       is_nop_sequence = 0;
       fprintf(f, "MEM[%x]:    %x\n", m, mem[m]);
     }
-   
   }
-
   fputs("\n>>> EOF <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<\n", f);
-
-
 }
 
 
@@ -93,8 +78,7 @@ int main(int argc, char *argv[]) {
   }
 
   FILE *output_file, *input_file;
-  int word;
-  int i;
+  int word1, word2, i;
 
   // For each input file
   //  for (i = 2; i < argc; i++) {
@@ -104,9 +88,11 @@ int main(int argc, char *argv[]) {
     /*    printf("sizeof(int)=%lx\n", sizeof(int));
 	  printf("sizeof(int)=%lx\n", sizeof(long));*/
     // Read word-by-word
-    while (fread(&word, 4, 1, input_file) == 1) {
-      printf ("%x\n", word);
+    while(fread(&word1, 1, 1, input_file) == 1 &&
+          fread(&word2, 1, 1, input_file)) { 
+      printf ("%2x%2x\n", word1, word2);
     }
+
     printf("Done in while\n");
     fclose(input_file);
     //  }
