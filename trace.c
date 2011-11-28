@@ -41,10 +41,11 @@ int reg[REG_LEN];
  * When confronted with a series of NOPs in memory, it prints the first and 
  * then a set of ellipses until a new value arrises. NOTE: change the first 
  * line to change the output file. 
+ *
+ * @param: *f A file opened with write privileges.
  */
-void print_lc4_state() {
+void print_lc4_state(FILE *f) {
 
-  FILE *f = fopen("test.txt", "w");
   int r, m, is_nop_sequence;
   
   fputs("\n>>> REGISTER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
@@ -85,13 +86,32 @@ void print_lc4_state() {
 
 
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc < 3) {
+    printf("Usage: %s output_file input1.obj [inptu2.obj [...]]", argv[0]);
+    exit(1);
+  }
 
-  mem[0] = 4000;
-  mem[1] = 2000;
-  mem[42] = 92;
-  mem[512] = 4096;
+  FILE *output_file, *input_file;
+  int word;
+  int i;
 
-  print_lc4_state();
+  // For each input file
+  //  for (i = 2; i < argc; i++) {
+
+    input_file = fopen(argv[i], "r");
+
+
+    // Read word-by-word
+    while (fread(&word, 16, 1, input_file) == 1) {
+      printf ("%16x\n", word);
+    }
+    printf("Done in while\n");
+    fclose(input_file);
+    //  }
+  
+    //  output_file = fopen(argv[1], "w");
+    //  print_lc4_state(output_file);
+  return 0;
 
 }
