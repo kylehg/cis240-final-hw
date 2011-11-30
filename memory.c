@@ -19,6 +19,8 @@
 #define I_5_3(i)  ((i >> 3) & 0x7) // For 3-bit secondary opcodes
 #define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
+
+
 /**
  * print_lc4_state(): Prints the LC4 memory and register state to a flat file.
  *
@@ -31,28 +33,37 @@
 void print_lc4_state(unsigned short *reg, unsigned short *mem,
                      int reg_len, int mem_len, FILE *f) {
   int r, m, is_nop_sequence;
+
   fputs("\n>>> REGISTER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<\n", f);
+
   for (r = 0; r < reg_len; r++)
     fprintf(f, "R%d: %x | ", r, reg[r]);
+
   fputs("\n\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<<<\n", f);
+
   for (m = 0; m < mem_len; m++) {
+
     // Not in a NOP sequence:
     if (!is_nop_sequence) {
+
       fprintf(f, "MEM[%4x]:    %x\n", m, mem[m]);
+
       // Transition into NOP sequence
       if (mem[m] == 0) {
         is_nop_sequence = 1;
         fputs("...\n", f);
       }
     }
+
     // In a NOP sequence, transition to an OP sequence
     else if (mem[m] != 0) {
       is_nop_sequence = 0;
       fprintf(f, "MEM[%4x]:    %x\n", m, mem[m]);
     }
   }
+
   fputs("\n>>> EOF <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
   fputs("<<<<<<<<<<<<<<<<<\n", f);
 }

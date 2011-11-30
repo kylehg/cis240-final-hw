@@ -23,8 +23,9 @@
 #define I_10_0(i) (i * 0x7FF) // FOR IMM11 (AND w/ 2047)
 
 #define I_5(i)    ((i >> 5) & 0x1) // For 1-bit secondary opcodes
-#define I_5_4(i)  ((i >> 4) & 0x2) // For 2-bit secondary opcodes
+#define I_5_4(i)  ((i >> 4) & 0x3) // For 2-bit secondary opcodes
 #define I_5_3(i)  ((i >> 3) & 0x7) // For 3-bit secondary opcodes
+#define I_8_7(i)  ((i >> 7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
 #define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
@@ -50,57 +51,81 @@ int read_word(unsigned short *buffer, FILE *f) {
   return 1 == size;
 }
 
-void parse_code(FILE *f, int addr, int n) {
-  int m;
-  unsigned short word;
-  if (D) printf("parse_code: <%4x> <%d>", addr, n);
-
-  for (m = 0; m < n; m++) {
-    read_word(&word, f);
-    mem[addr + m] = word;
-
-    switch (I_OP(word)) {
+void parse_instruction(unsigned short word) {
+   switch (I_OP(word)) {
     case 0x0:
       printf("BR\n");
       break;
 
     case 0x1:
-      printf("ARITH\n");
-      /*      switch (I_5_3(word)) {
+      switch (I_5_3(word)) {
       case 0x0:
         printf("ADD\n");
         break;
-
       case 0x1:
         printf("MUL\n");
         break;
-
       case 0x2:
         printf("SUB\n");
         break;
-
       case 0x3:
         printf("DIV\n");
         break;
-
       default:
         if (I_5(word))
           printf("ADDI\n");
         else
           printf("ARITH ERROR");
-          }*/
+      }
       break;
 
     case 0x2:
-      printf("CMP\n");
+      switch(I_8_7(word)) {
+      case 0x0:
+        printf("CMP\n");
+        break;
+      case 0x1:
+        printf("CMPU\n");
+        break;
+      case 0x2:
+        printf("CMPI\n");
+        break;
+      case 0x3:
+        printf("CMPIU\n");
+        break;
+      }
+
+
       break;
 
     case 0x4:
-      printf("JSR\n");
+      if (I_11(word) == 0) {
+        printf("JSRR");
+      } else {
+        printf("JSR");
+      }
       break;
 
     case 0x5:
-      printf("LOGIC\n");
+      switch (I_5_3(word)) {
+      case 0x0:
+        printf("AND\n");
+        break;
+      case 0x1:
+        printf("NOT\n");
+        break;
+      case 0x2:
+        printf("OR\n");
+        break;
+      case 0x3:
+        printf("XOR\n");
+        break;
+      default:
+        if (I_5(word))
+          printf("ANDI\n");
+        else
+          printf("LOGIC ERROR");
+      }
       break;
 
     case 0x6:
@@ -139,6 +164,18 @@ void parse_code(FILE *f, int addr, int n) {
       printf("OPCODE ERROR");
     }
 
+}
+
+void parse_code(FILE *f, int addr, int n) {
+  int m;
+  unsigned short word;
+  printf("parse_code: <%4x> <%d>\n", addr, n);
+
+  for (m = 0; m < n; m++) {
+    read_word(&word, f);
+    mem[addr + m] = word;
+    parse_instruction(word);
+ 
   }
 
 
