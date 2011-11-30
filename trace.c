@@ -29,7 +29,12 @@
 
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
 
-#define DEBUG(args) if (1) { printf(args); }
+#define D 1
+#define MEM_LEN 65536
+#define REG_LEN 8
+unsigned short mem[MEM_LEN];
+unsigned short reg[REG_LEN];
+
 
 /**
  * read_word(): Special read function for words. Uses read_byte().
@@ -46,7 +51,95 @@ int read_word(unsigned short *buffer, FILE *f) {
 }
 
 void parse_code(FILE *f, int addr, int n) {
+  int m;
+  unsigned short word;
+  if (D) printf("parse_code: <%4x> <%d>", addr, n);
 
+  for (m = 0; m < n; m++) {
+    read_word(&word, f);
+    mem[addr + m] = word;
+
+    switch (I_OP(word)) {
+    case 0x0:
+      printf("BR\n");
+      break;
+
+    case 0x1:
+      printf("ARITH\n");
+      /*      switch (I_5_3(word)) {
+      case 0x0:
+        printf("ADD\n");
+        break;
+
+      case 0x1:
+        printf("MUL\n");
+        break;
+
+      case 0x2:
+        printf("SUB\n");
+        break;
+
+      case 0x3:
+        printf("DIV\n");
+        break;
+
+      default:
+        if (I_5(word))
+          printf("ADDI\n");
+        else
+          printf("ARITH ERROR");
+          }*/
+      break;
+
+    case 0x2:
+      printf("CMP\n");
+      break;
+
+    case 0x4:
+      printf("JSR\n");
+      break;
+
+    case 0x5:
+      printf("LOGIC\n");
+      break;
+
+    case 0x6:
+      printf("LDR\n");
+      break;
+
+    case 0x7:
+      printf("STR\n");
+      break;
+
+    case 0x8:
+      printf("RTI\n");
+      break;
+
+    case 0x9:
+      printf("CONST\n");
+      break;
+
+    case 0xA:
+      printf("BITOPS\n");
+      break;
+
+    case 0xC:
+      printf("JMP\n");
+      break;
+
+    case 0xD:
+      printf("HICONST\n");
+      break;
+
+    case 0xF:
+      printf("TRAP\n");
+      break;
+
+    default:
+      printf("OPCODE ERROR");
+    }
+
+  }
 
 
 }
@@ -62,7 +155,6 @@ int main(int argc, char *argv[]) {
   // TODO: Check for arg length;
 
   FILE *output_file, *input_file;
-  //int f, w, mode, word, letter1, word2, not_eof, chars_left, addr, letter2;
   unsigned short word, addr, n, letter, mode, f;
   int size;
 
@@ -74,27 +166,27 @@ int main(int argc, char *argv[]) {
     do {
       //      fread(&word, 2, 1, input_file);
       size = read_word(&word, input_file);
-      DEBUG("%4x %d\n", word, size)
-
-      if (word == 0xcade) {
-        DEBUG("CODE\n")
+      if (D) printf("%4x %d\n", word, size);
+      switch (word) {
+      case 0xcade:
+        if (D) printf("CODE\n");
         read_word(&addr, input_file);
         read_word(&n, input_file);
         parse_code(input_file, addr, n);
-      }
-      else if (word == 0xdada) {
+        break;
+      case 0xdada:
         printf("CODE\n");
-      }
-      else if (word == 0xc3b7) {
+        break;
+      case 0xc3b7:
         printf("SYMBOL\n");
-      }
-      else if (word == 0xf17e) {
+        break;
+      case 0xf17e:
         printf("FILE\n");
-      }
-      else if (word == 0x715e) {
+        break;
+      case 0x715e:
         printf("LINE\n");
-      }
-      else {
+        break;
+      default:
         printf("DEFAULT\n");
       }
 
@@ -105,7 +197,7 @@ int main(int argc, char *argv[]) {
   }
   
   output_file = fopen(argv[1], "w");
-  //  print_lc4_state(output_file);
+  print_lc4_state(reg, mem, REG_LEN, MEM_LEN, output_file);
   return 0;
 
 }
