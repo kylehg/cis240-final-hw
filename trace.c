@@ -31,19 +31,7 @@
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
 
 #define D 1
-#define MEM_LEN 65536
-#define REG_LEN 8
-unsigned short mem[MEM_LEN];
-unsigned short reg[REG_LEN];
 
-
-/**
- * read_word(): Special read function for words. Uses read_byte().
- *
- * @param: buffer The int to read the word into.
- * @param: *f The file to read the word from.
- * @return: TRUE if the read was successful, FALSE otherwise.
- */
 int read_word(unsigned short *buffer, FILE *f) {
   int size;
   size = fread(buffer, 2, 1, f);
@@ -52,117 +40,123 @@ int read_word(unsigned short *buffer, FILE *f) {
 }
 
 void parse_instruction(unsigned short word) {
-   switch (I_OP(word)) {
-    case 0x0:
-      printf("BR\n");
-      break;
+  switch (I_OP(word)) {
 
-    case 0x1:
-      switch (I_5_3(word)) {
-      case 0x0:
-        printf("ADD\n");
-        break;
-      case 0x1:
-        printf("MUL\n");
-        break;
-      case 0x2:
-        printf("SUB\n");
-        break;
-      case 0x3:
-        printf("DIV\n");
-        break;
-      default:
-        if (I_5(word))
-          printf("ADDI\n");
-        else
-          printf("ARITH ERROR");
-      }
-      break;
+  case 0x0: do_br(I_8_0(word), I_11_9(word)); break;
 
-    case 0x2:
-      switch(I_8_7(word)) {
-      case 0x0:
-        printf("CMP\n");
-        break;
-      case 0x1:
-        printf("CMPU\n");
-        break;
-      case 0x2:
-        printf("CMPI\n");
-        break;
-      case 0x3:
-        printf("CMPIU\n");
-        break;
-      }
-
-
-      break;
-
-    case 0x4:
-      if (I_11(word) == 0) {
-        printf("JSRR");
-      } else {
-        printf("JSR");
-      }
-      break;
-
-    case 0x5:
-      switch (I_5_3(word)) {
-      case 0x0:
-        printf("AND\n");
-        break;
-      case 0x1:
-        printf("NOT\n");
-        break;
-      case 0x2:
-        printf("OR\n");
-        break;
-      case 0x3:
-        printf("XOR\n");
-        break;
-      default:
-        if (I_5(word))
-          printf("ANDI\n");
-        else
-          printf("LOGIC ERROR");
-      }
-      break;
-
-    case 0x6:
-      printf("LDR\n");
-      break;
-
-    case 0x7:
-      printf("STR\n");
-      break;
-
-    case 0x8:
-      printf("RTI\n");
-      break;
-
-    case 0x9:
-      printf("CONST\n");
-      break;
-
-    case 0xA:
-      printf("BITOPS\n");
-      break;
-
-    case 0xC:
-      printf("JMP\n");
-      break;
-
-    case 0xD:
-      printf("HICONST\n");
-      break;
-
-    case 0xF:
-      printf("TRAP\n");
-      break;
-
+  case 0x1:
+    switch (I_5_3(word)) {
+    case 0x0: do_add(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    case 0x1: do_mul(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      printf("OPCODE ERROR");
+      if (I_5(word)) { do_addi(I_11_9(word), I_4_0(word)) }
+      else printf("ARITH ERROR");
     }
+    break;
+
+  case 0x2:
+    switch(I_8_7(word)) {
+    case 0x0:
+      printf("CMP\n");
+      break;
+    case 0x1:
+      printf("CMPU\n");
+      break;
+    case 0x2:
+      printf("CMPI\n");
+      break;
+    case 0x3:
+      printf("CMPIU\n");
+      break;
+    }
+
+
+    break;
+
+  case 0x4:
+    if (I_11(word) == 0) {
+      printf("JSRR");
+    } else {
+      printf("JSR");
+    }
+    break;
+
+  case 0x5:
+    switch (I_5_3(word)) {
+    case 0x0:
+      printf("AND\n");
+      break;
+    case 0x1:
+      printf("NOT\n");
+      break;
+    case 0x2:
+      printf("OR\n");
+      break;
+    case 0x3:
+      printf("XOR\n");
+      break;
+    default:
+      if (I_5(word))
+        printf("ANDI\n");
+      else
+        printf("LOGIC ERROR");
+    }
+    break;
+
+  case 0x6:
+    printf("LDR\n");
+    break;
+
+  case 0x7:
+    printf("STR\n");
+    break;
+
+  case 0x8:
+    printf("RTI\n");
+    break;
+
+  case 0x9:
+    printf("CONST\n");
+    break;
+
+  case 0xA:
+    switch (I_5_4(word)) {
+    case 0x0:
+      printf("SLL\n");
+      break;
+    case 0x1:
+      printf("SRA\n");
+      break;
+    case 0x2:
+      printf("SRL\n");
+      break;
+    case 0x3:
+      printf("MOD\n");
+      break;
+    }
+    break;
+
+  case 0xC:
+    if (I_11(word) == 0) {
+      printf("JMPR\n");
+    } else {
+      printf("JMP\n");
+    }
+    break;
+
+  case 0xD:
+    printf("HICONST\n");
+    break;
+
+  case 0xF:
+    printf("TRAP\n");
+    break;
+
+  default:
+    printf("OPCODE ERROR");
+  }
 
 }
 

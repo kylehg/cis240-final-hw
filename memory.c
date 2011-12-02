@@ -1,35 +1,60 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define I_OP(i)   (i >> 12) // For opcodes
-#define I_2_0(i)  (i & 0x7) //For Rt
-#define I_8_6(i)  ((i >> 6) & 0x7) // For Rs
-#define I_11_9(i) ((i >> 9) & 0x7) // For Rd, and NZP codes
+#define D 1
 
-#define I_3_0(i)  (i & 0xF) // For IMM4 (AND w/ 15)
-#define I_4_0(i)  (i & 0x1F) // For IMM5 (AND w/ 31)
-#define I_5_0(i)  (i & 0x3F) // For IMM6 (AND w/ 63)
-#define I_6_0(i)  (i & 0x7F) // FOR IMM7 (AND w/ 127)
-#define I_7_0(i)  (i & 0xFF) // FOR IMM8 (AND w/ 255)
-#define I_8_0(i)  (i * 0x1FF) // FOR IMM9 (AND w/ 511)
-#define I_10_0(i) (i * 0x7FF) // FOR IMM11 (AND w/ 2047)
+#define MEM_LEN 65536
+#define REG_LEN 8
 
-#define I_5(i)    ((i >> 5) & 0x1) // For 1-bit secondary opcodes
-#define I_5_4(i)  ((i >> 4) & 0x2) // For 2-bit secondary opcodes
-#define I_5_3(i)  ((i >> 3) & 0x7) // For 3-bit secondary opcodes
-#define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
+unsigned short mem[MEM_LEN];
+unsigned short reg[REG_LEN];
+
+void do_br(int imm9, int nzp) {
+  printf("BR%c%c%c %4x \n", ((nzp & 0x4) == 0x4 ? 'n' : ' '), 
+         ((nzp & 0x2) == 0x2 ? 'z' : ' '), ((nzp & 0x1) == 0x1 ? 'p' : ' '),
+         imm9);
+}
+
+void do_add(int rd, int rs, int rt) {
+  
+}
+void do_mul(int rd, int rs, int rt);
+void do_sub(int rd, int rs, int rt);
+void do_div(int rd, int rs, int rt);
+void do_addi(int rd, int rs, int imm5);
+
+void do_cmp(int rs, int rt);
+void do_cmpu(int rs, int rt);
+void do_cmpi(int rs, int imm7);
+void do_cmpiu(int rs, int uimm7);
+
+void do_jsr(int imm11);
+void do_jsrr(int rs);
+
+void do_and(int rd, int rs, int rt);
+void do_not(int rd, int rs);
+void do_or(int rd, int rs, int rt);
+void do_xor(int rd, int rs, int rt);
+void do_andi(int rd, int rs, int imm5);
+
+void do_ldr(int rd, int rs, int imm6);
+void do_str(int rt, int rs, int imm6);
+
+void do_rti();
+
+void do_const(int rd, int imm9);
+void do_sll(int rd, int rs, int uimm4);
+void do_sra(int rd, int rs, int uimm4);
+void do_srl(int rd, int rs, int uimm4);
+void do_mod(rd, rs, rt);
+
+void do_jmpr(int rs);
+void do_jmp(int imm11);
+void do_hiconst(int rd, int uimm8);
+void do_trap(int uimm8);
 
 
 
-/**
- * print_lc4_state(): Prints the LC4 memory and register state to a flat file.
- *
- * When confronted with a series of NOPs in memory, it prints the first and
- * then a set of ellipses until a new value arrises. NOTE: change the first
- * line to change the output file.
- *
- * @param: *f A file opened with write privileges.
- */
 void print_lc4_state(unsigned short *reg, unsigned short *mem,
                      int reg_len, int mem_len, FILE *f) {
   int r, m, is_nop_sequence;
