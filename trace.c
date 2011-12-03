@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "memory.h"
+#include "memory.c"
 
 #define I_OP(i)   (i >> 12) // For opcodes
 #define I_2_0(i)  (i & 0x7) //For Rt
@@ -39,143 +39,104 @@ int read_word(unsigned short *buffer, FILE *f) {
   return 1 == size;
 }
 
-void parse_instruction(unsigned short word) {
+unsigned short parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
+    // BRxxx
   case 0x0: do_br(I_8_0(word), I_11_9(word)); break;
 
-  case 0x1:
+  case 0x1: // ARITH
     switch (I_5_3(word)) {
     case 0x0: do_add(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x1: do_mul(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) { do_addi(I_11_9(word), I_4_0(word)) }
-      else printf("ARITH ERROR");
+      if (I_5(word)) do_addi(I_11_9(word), I_8_6(word), I_4_0(word));
+      else printf("ARITH ERROR"); //TODO: Instruction error handling
     }
     break;
 
-  case 0x2:
+  case 0x2: // LOGIC
     switch(I_8_7(word)) {
-    case 0x0:
-      printf("CMP\n");
-      break;
-    case 0x1:
-      printf("CMPU\n");
-      break;
-    case 0x2:
-      printf("CMPI\n");
-      break;
-    case 0x3:
-      printf("CMPIU\n");
-      break;
-    }
-
-
-    break;
-
-  case 0x4:
-    if (I_11(word) == 0) {
-      printf("JSRR");
-    } else {
-      printf("JSR");
+    case 0x0: do_cmp(I_11_9(word), I_2_0(word)); break;
+    case 0x1: do_cmpu(I_11_9(word), I_2_0(word)); break;
+    case 0x2: do_cmpi(I_11_9(word), I_6_0(word)); break;
+    case 0x3: do_cmpiu(I_11_9(word), I_6_0(word)); break;
+    default: printf("CMP ERROR"); //TODO: Instruction erro handling
     }
     break;
 
-  case 0x5:
+  case 0x4: // JSR
+    if (I_11(word) == 0) do_jsrr(I_8_6(word)); 
+    else do_jsr(I_10_0(word));
+    break;
+
+  case 0x5: // LOGIC
     switch (I_5_3(word)) {
-    case 0x0:
-      printf("AND\n");
-      break;
-    case 0x1:
-      printf("NOT\n");
-      break;
-    case 0x2:
-      printf("OR\n");
-      break;
-    case 0x3:
-      printf("XOR\n");
-      break;
+    case 0x0: do_and(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    case 0x1: do_not(I_11_9(word), I_8_6(word)); break;
+    case 0x2: do_or(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word))
-        printf("ANDI\n");
-      else
-        printf("LOGIC ERROR");
+      if (I_5(word)) do_andi(I_11_9(word), I_8_6(word), I_4_0(word));
+      else printf("LOGIC ERROR"); //TODO: Instruction error handling
     }
     break;
 
-  case 0x6:
-    printf("LDR\n");
-    break;
+    // LDR & STR
+  case 0x6: do_ldr(I_11_9(word), I_8_6(word), I_5_0(word)); break;
+  case 0x7: do_str(I_11_9(word), I_8_6(word), I_5_0(word)); break;
 
-  case 0x7:
-    printf("STR\n");
-    break;
+    // RTI
+  case 0x8: do_rti(); break;
 
-  case 0x8:
-    printf("RTI\n");
-    break;
+    //CONST
+  case 0x9: do_const(I_11_9(word), I_8_0(word)); break;
 
-  case 0x9:
-    printf("CONST\n");
-    break;
-
+    // BITSHIFT
   case 0xA:
     switch (I_5_4(word)) {
-    case 0x0:
-      printf("SLL\n");
-      break;
-    case 0x1:
-      printf("SRA\n");
-      break;
-    case 0x2:
-      printf("SRL\n");
-      break;
-    case 0x3:
-      printf("MOD\n");
-      break;
+    case 0x0: do_sll(I_11_9(word), I_8_6(word), I_3_0(word)); break;
+    case 0x1: do_sra(I_11_9(word), I_8_6(word), I_3_0(word)); break;
+    case 0x2: do_srl(I_11_9(word), I_8_6(word), I_3_0(word)); break;
+    case 0x3: do_mod(I_11_9(word), I_8_6(word), I_2_0(word)); break;
+    default: printf("BITSHIFT ERROR\n"); //TODO: Instruction error handling
     }
     break;
 
+    // JMP & JMPR
   case 0xC:
-    if (I_11(word) == 0) {
-      printf("JMPR\n");
-    } else {
-      printf("JMP\n");
-    }
+    if (I_11(word) == 0) do_jmpr(I_8_6(word));
+    else do_jmp(I_10_0(word));
     break;
 
-  case 0xD:
-    printf("HICONST\n");
-    break;
+    // HICONST
+  case 0xD: do_hiconst(I_11_9(word), I_7_0(word)); break;
 
-  case 0xF:
-    printf("TRAP\n");
-    break;
+    // TRAP
+  case 0xF: do_trap(I_7_0(word)); break;
 
-  default:
-    printf("OPCODE ERROR");
+  default: printf("OPCODE ERROR"); //TODO Instruction error handling
   }
+
+  return I_OP(word);
 
 }
 
-void parse_code(FILE *f, int addr, int n) {
-  int m;
+
+void parse_words(char type, FILE *f, unsigned short addr, 
+                 unsigned short length) {
   unsigned short word;
   printf("parse_code: <%4x> <%d>\n", addr, n);
 
-  for (m = 0; m < n; m++) {
+  while (length > 0) {
     read_word(&word, f);
-    mem[addr + m] = word;
-    parse_instruction(word);
- 
+    mem_store('u', type, addr, word);
+    length--;
   }
-
-
 }
 
-void parse_data(FILE *f, int addr, int n) {}
 void parse_symbol(FILE *f, int addr, int n) {}
 void parse_filename(FILE *f, int addr, int n) {}
 void parse_linenumber(FILE *f, int addr, int line, 
@@ -186,7 +147,8 @@ int main(int argc, char *argv[]) {
   // TODO: Check for arg length;
 
   FILE *output_file, *input_file;
-  unsigned short word, addr, n, letter, mode, f;
+  unsigned short word, addr, length, letter, f;
+  char type;
   int size;
 
   // For each input file
@@ -197,23 +159,23 @@ int main(int argc, char *argv[]) {
     do {
       //      fread(&word, 2, 1, input_file);
       size = read_word(&word, input_file);
-      if (D) printf("%4x %d\n", word, size);
+      printf("%4x %d\n", word, size);
       switch (word) {
-      case 0xcade:
-        if (D) printf("CODE\n");
+      case 0xcade: type = 'c';
+      case 0xdada: type = 'd';
         read_word(&addr, input_file);
-        read_word(&n, input_file);
-        parse_code(input_file, addr, n);
+        read_word(&length, input_file);
+        parse_code(type, input_file, addr, length);
         break;
-      case 0xdada:
-        printf("CODE\n");
-        break;
+
       case 0xc3b7:
         printf("SYMBOL\n");
         break;
+
       case 0xf17e:
         printf("FILE\n");
         break;
+
       case 0x715e:
         printf("LINE\n");
         break;
@@ -228,7 +190,7 @@ int main(int argc, char *argv[]) {
   }
   
   output_file = fopen(argv[1], "w");
-  print_lc4_state(reg, mem, REG_LEN, MEM_LEN, output_file);
+  print_lc4_state(reg, mem, output_file);
   return 0;
 
 }
