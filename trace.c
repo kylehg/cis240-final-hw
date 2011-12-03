@@ -127,14 +127,6 @@ unsigned short parse_instruction(unsigned short word) {
 
 void parse_words(char type, FILE *f, unsigned short addr, 
                  unsigned short length) {
-  unsigned short word;
-  printf("parse_code: <%4x> <%d>\n", addr, n);
-
-  while (length > 0) {
-    read_word(&word, f);
-    mem_store('u', type, addr, word);
-    length--;
-  }
 }
 
 void parse_symbol(FILE *f, int addr, int n) {}
@@ -147,7 +139,7 @@ int main(int argc, char *argv[]) {
   // TODO: Check for arg length;
 
   FILE *output_file, *input_file;
-  unsigned short word, addr, length, letter, f;
+  unsigned short word, addr, length, line, file_index, letter, f;
   char type;
   int size;
 
@@ -155,32 +147,46 @@ int main(int argc, char *argv[]) {
   for (f = 2; f < argc; f++) {
     input_file = fopen(argv[2], "r");
 
-    // Read word-by-word
     do {
-      //      fread(&word, 2, 1, input_file);
+      // Read the header
       size = read_word(&word, input_file);
       printf("%4x %d\n", word, size);
       switch (word) {
-      case 0xcade: type = 'c';
-      case 0xdada: type = 'd';
+
+      case 0xcade: //Code
+      case 0xdada: //Data
+        type = (word == 0xcade) ? 'c' : 'd'; 
         read_word(&addr, input_file);
         read_word(&length, input_file);
-        parse_code(type, input_file, addr, length);
+        while (length > 0) {
+          read_word(&word, input_file);
+          mem_store('u', type, addr, word);
+          length--;
+        }
         break;
 
-      case 0xc3b7:
-        printf("SYMBOL\n");
+      case 0xc3b7: //Symbol
+        type = 's'; 
+        read_word(&addr, input_file);
+        read_word(&length, input_file);
+        fread(&word, 1, length, f);
         break;
 
-      case 0xf17e:
-        printf("FILE\n");
+      case 0xf17e: //File name
+        type = 'f'; 
+        read_word(&length, input_file);
+        fread(&word, 1, length, f);
         break;
 
-      case 0x715e:
-        printf("LINE\n");
+      case 0x715e: //Line number
+        type = 'l';
+        read_word(&addr, input_file);
+        read_word(&line, input_file);
+        read_word(&file_index, input_file);
         break;
+
       default:
-        printf("DEFAULT\n");
+        printf("HEADER READ ERROR\n");
       }
 
     } while (!feof(input_file));
