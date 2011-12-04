@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "memory.c"
+#include "memory.h"
 
 #define I_OP(i)   (i >> 12) // For opcodes
 #define I_2_0(i)  (i & 0x7) //For Rt
@@ -39,102 +39,6 @@ int read_word(unsigned short *buffer, FILE *f) {
   return 1 == size;
 }
 
-unsigned short parse_instruction(unsigned short word) {
-  switch (I_OP(word)) {
-
-    // BRxxx
-  case 0x0: do_br(I_8_0(word), I_11_9(word)); break;
-
-  case 0x1: // ARITH
-    switch (I_5_3(word)) {
-    case 0x0: do_add(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    case 0x1: do_mul(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    default:
-      if (I_5(word)) do_addi(I_11_9(word), I_8_6(word), I_4_0(word));
-      else printf("ARITH ERROR"); //TODO: Instruction error handling
-    }
-    break;
-
-  case 0x2: // LOGIC
-    switch(I_8_7(word)) {
-    case 0x0: do_cmp(I_11_9(word), I_2_0(word)); break;
-    case 0x1: do_cmpu(I_11_9(word), I_2_0(word)); break;
-    case 0x2: do_cmpi(I_11_9(word), I_6_0(word)); break;
-    case 0x3: do_cmpiu(I_11_9(word), I_6_0(word)); break;
-    default: printf("CMP ERROR"); //TODO: Instruction erro handling
-    }
-    break;
-
-  case 0x4: // JSR
-    if (I_11(word) == 0) do_jsrr(I_8_6(word)); 
-    else do_jsr(I_10_0(word));
-    break;
-
-  case 0x5: // LOGIC
-    switch (I_5_3(word)) {
-    case 0x0: do_and(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    case 0x1: do_not(I_11_9(word), I_8_6(word)); break;
-    case 0x2: do_or(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    default:
-      if (I_5(word)) do_andi(I_11_9(word), I_8_6(word), I_4_0(word));
-      else printf("LOGIC ERROR"); //TODO: Instruction error handling
-    }
-    break;
-
-    // LDR & STR
-  case 0x6: do_ldr(I_11_9(word), I_8_6(word), I_5_0(word)); break;
-  case 0x7: do_str(I_11_9(word), I_8_6(word), I_5_0(word)); break;
-
-    // RTI
-  case 0x8: do_rti(); break;
-
-    //CONST
-  case 0x9: do_const(I_11_9(word), I_8_0(word)); break;
-
-    // BITSHIFT
-  case 0xA:
-    switch (I_5_4(word)) {
-    case 0x0: do_sll(I_11_9(word), I_8_6(word), I_3_0(word)); break;
-    case 0x1: do_sra(I_11_9(word), I_8_6(word), I_3_0(word)); break;
-    case 0x2: do_srl(I_11_9(word), I_8_6(word), I_3_0(word)); break;
-    case 0x3: do_mod(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    default: printf("BITSHIFT ERROR\n"); //TODO: Instruction error handling
-    }
-    break;
-
-    // JMP & JMPR
-  case 0xC:
-    if (I_11(word) == 0) do_jmpr(I_8_6(word));
-    else do_jmp(I_10_0(word));
-    break;
-
-    // HICONST
-  case 0xD: do_hiconst(I_11_9(word), I_7_0(word)); break;
-
-    // TRAP
-  case 0xF: do_trap(I_7_0(word)); break;
-
-  default: printf("OPCODE ERROR"); //TODO Instruction error handling
-  }
-
-  return I_OP(word);
-
-}
-
-
-void parse_words(char type, FILE *f, unsigned short addr, 
-                 unsigned short length) {
-}
-
-void parse_symbol(FILE *f, int addr, int n) {}
-void parse_filename(FILE *f, int addr, int n) {}
-void parse_linenumber(FILE *f, int addr, int line, 
-                      int file_index) {}
-
-
 int main(int argc, char *argv[]) {
   // TODO: Check for arg length;
 
@@ -150,32 +54,39 @@ int main(int argc, char *argv[]) {
     do {
       // Read the header
       size = read_word(&word, input_file);
-      printf("%4x %d\n", word, size);
+      printf("%4x \n", word);
       switch (word) {
 
       case 0xcade: //Code
       case 0xdada: //Data
-        type = (word == 0xcade) ? 'c' : 'd'; 
+        type = (word == 0xcade) ? 'c' : 'd';
         read_word(&addr, input_file);
         read_word(&length, input_file);
         while (length > 0) {
           read_word(&word, input_file);
-          mem_store('u', type, addr, word);
+          parse_instruction(word);
+          //          mem_store('u', type, addr, word);
           length--;
         }
         break;
 
       case 0xc3b7: //Symbol
-        type = 's'; 
+        type = 's';
         read_word(&addr, input_file);
         read_word(&length, input_file);
-        fread(&word, 1, length, f);
+        while (length > 0) {
+          fread(&word, 1, 1, input_file);
+          length--;
+        }
         break;
 
       case 0xf17e: //File name
-        type = 'f'; 
+        type = 'f';
         read_word(&length, input_file);
-        fread(&word, 1, length, f);
+        while (length > 0) {
+          fread(&word, 1, 1, input_file);
+          length--;
+        }
         break;
 
       case 0x715e: //Line number
@@ -194,9 +105,9 @@ int main(int argc, char *argv[]) {
 
     fclose(input_file);
   }
-  
+
   output_file = fopen(argv[1], "w");
-  print_lc4_state(reg, mem, output_file);
+  print_lc4_state(output_file);
   return 0;
 
 }
