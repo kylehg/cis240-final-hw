@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int mem_store(char perm, char type, unsigned short addr, unsigned short word);
+int mem_store(char type, unsigned short addr, unsigned short word);
 
 void do_br(short imm9, int nzp);
 
