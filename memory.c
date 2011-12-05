@@ -36,7 +36,7 @@ unsigned short reg[REG_LEN];
 
 /** @returns 0 if executed properly, 1 if a data-versus-code error, 2 if a
     os-versus-user error. */
-int mem_store(char perm, char type, unsigned short addr, unsigned short word){
+int mem_store(char type, unsigned short addr, unsigned short word){
   // OS?
   //  if (perm == 'o' && (0x8000 > addr || addr < 0xA000)) return 2;
   // Return false if attempt to load in incorrect place
@@ -66,7 +66,7 @@ void do_div(int rd, int rs, int rt) {
   printf("DIV R%d, R%d, R%d \n", rd, rs, rt);
 }
 void do_addi(int rd, int rs, short imm5) {
-  printf("ADD R%d, R%d, #%d \n", rd, rs, -1);//imm5);
+  printf("ADD R%d, R%d, #%d \n", rd, rs, imm5);
 }
 
 void do_cmp(int rs, int rt) {
@@ -148,8 +148,16 @@ void do_trap(unsigned short uimm8) {
   printf("HICONST 0x%x \n", uimm8);
 }
 
-short sext(short n, unsigned short len){
-  return (n & (1 << (len-1)) ? (0xFFFF - ( (1 << (len + 1)) - 1 - n)) : n);
+short sext(short n, unsigned short len) {
+  /*  short ret;
+  if (n & (1 << (len-1))) {
+    ret = 0 - ((1 << len) - n);
+    printf("Sign extension %d, %x\n", ret, n);
+    return ret;
+  } else { 
+    return n;
+    }*/
+  return n;
 }
 
 unsigned short parse_instruction(unsigned short word) {

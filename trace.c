@@ -9,25 +9,6 @@
 #include <stdlib.h>
 #include "memory.h"
 
-#define I_OP(i)   (i >> 12) // For opcodes
-#define I_2_0(i)  (i & 0x7) //For Rt
-#define I_8_6(i)  ((i >> 6) & 0x7) // For Rs
-#define I_11_9(i) ((i >> 9) & 0x7) // For Rd, and NZP codes
-
-#define I_3_0(i)  (i & 0xF) // For IMM4 (AND w/ 15)
-#define I_4_0(i)  (i & 0x1F) // For IMM5 (AND w/ 31)
-#define I_5_0(i)  (i & 0x3F) // For IMM6 (AND w/ 63)
-#define I_6_0(i)  (i & 0x7F) // FOR IMM7 (AND w/ 127)
-#define I_7_0(i)  (i & 0xFF) // FOR IMM8 (AND w/ 255)
-#define I_8_0(i)  (i * 0x1FF) // FOR IMM9 (AND w/ 511)
-#define I_10_0(i) (i * 0x7FF) // FOR IMM11 (AND w/ 2047)
-
-#define I_5(i)    ((i >> 5) & 0x1) // For 1-bit secondary opcodes
-#define I_5_4(i)  ((i >> 4) & 0x3) // For 2-bit secondary opcodes
-#define I_5_3(i)  ((i >> 3) & 0x7) // For 3-bit secondary opcodes
-#define I_8_7(i)  ((i >> 7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
-#define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
-
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
 
 #define D 1
@@ -94,6 +75,7 @@ int main(int argc, char *argv[]) {
         read_word(&addr, input_file);
         read_word(&line, input_file);
         read_word(&file_index, input_file);
+        printf("715e: <0x%4x> %d %d \n", addr, line, file_index);
         break;
 
       default:
