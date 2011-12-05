@@ -33,6 +33,9 @@
 
 unsigned short mem[MEM_LEN];
 unsigned short reg[REG_LEN];
+unsigned short pc;
+unsigned short psr;
+unsigned short last_addr;
 
 /** @returns 0 if executed properly, 1 if a data-versus-code error, 2 if a
     os-versus-user error. */
@@ -55,6 +58,8 @@ void do_br(int nzp, short imm9) {
 
 void do_add(int rd, int rs, int rt) {
   printf("ADD R%d, R%d, R%d \n", rd, rs, rt);
+
+  
 }
 void do_mul(int rd, int rs, int rt) {
   printf("MUL R%d, R%d, R%d \n", rd, rs, rt);
