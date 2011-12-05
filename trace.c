@@ -57,8 +57,8 @@ int main(int argc, char *argv[]) {
         read_word(&length, input_file);
         printf("C3B7: <%4x> %d \n", addr, length);
         while (length > 0) {
-          fread(&word, 1, 1, input_file);
-          printf("...%2x \n", word);
+          fread(&letter, 1, 1, input_file);
+          printf("...%2x \n", letter);
           length--;
         }
         break;
@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
         read_word(&length, input_file);
         printf("F17E: %d \n", length);
         while (length > 0) {
-          fread(&word, 1, 1, input_file);
-          printf("...%2x \n", word);
+          fread(&letter, 1, 1, input_file);
+          printf("...%2x \n", letter);
           length--;
         }
         break;
