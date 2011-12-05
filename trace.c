@@ -10,7 +10,6 @@
 #include "memory.h"
 
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
-
 #define D 1
 
 int read_word(unsigned short *buffer, FILE *f) {
@@ -43,10 +42,11 @@ int main(int argc, char *argv[]) {
         type = (word == 0xcade) ? 'c' : 'd';
         read_word(&addr, input_file);
         read_word(&length, input_file);
+
         while (length > 0) {
           read_word(&word, input_file);
           parse_instruction(word);
-          //          mem_store('u', type, addr, word);
+          mem_store(type, addr, word);
           length--;
         }
         break;
@@ -55,8 +55,10 @@ int main(int argc, char *argv[]) {
         type = 's';
         read_word(&addr, input_file);
         read_word(&length, input_file);
+        printf("C3B7: <%4x> %d \n", addr, length);
         while (length > 0) {
           fread(&word, 1, 1, input_file);
+          printf("...%2x \n", word);
           length--;
         }
         break;
@@ -64,8 +66,10 @@ int main(int argc, char *argv[]) {
       case 0xf17e: //File name
         type = 'f';
         read_word(&length, input_file);
+        printf("F17E: %d \n", length);
         while (length > 0) {
           fread(&word, 1, 1, input_file);
+          printf("...%2x \n", word);
           length--;
         }
         break;
@@ -75,7 +79,7 @@ int main(int argc, char *argv[]) {
         read_word(&addr, input_file);
         read_word(&line, input_file);
         read_word(&file_index, input_file);
-        printf("715e: <0x%4x> %d %d \n", addr, line, file_index);
+        printf("715E: <0x%4x> %d %d \n", addr, line, file_index);
         break;
 
       default:
@@ -89,7 +93,7 @@ int main(int argc, char *argv[]) {
   }
 
   output_file = fopen(argv[1], "w");
-  print_lc4_state(output_file);
+  print_lc4_state(stdout);
   return 0;
 
 }
