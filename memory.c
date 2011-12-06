@@ -249,41 +249,45 @@ unsigned short parse_instruction(unsigned short word) {
 
 }
 
+
+/**
+ * Print the state of the machine, passing over long stretches of nothingness
+ */
 void print_lc4_state(FILE *f) {
   int r, m, is_nop_sequence;
 
-  fputs("\n>>> REGISTER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
-  fputs("<<<<<<<<<<<<<<<<<\n", f);
+  fputs("\n>>> REGISTERS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
 
   for (r = 0; r < REG_LEN; r++)
     fprintf(f, "R%d: %x | ", r, reg[r]);
 
-  fputs("\n\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
-  fputs("<<<<<<<<<<<<<<<<<<<\n", f);
+  fprintf(f, "\nPC: %d | PSR: 0x%4X \n", pc, psr);
+
+
+
+  fputs("\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
 
   for (m = 0; m < MEM_LEN; m++) {
 
-    // Not in a NOP sequence:
-    if (!is_nop_sequence) {
-
+    // Only print if there's content, or if it's the first 0 of a NOP sequence.
+    if (mem[m] != 0 || !is_nop_sequence) {
+      is_nop_sequence = 0;
       fprintf(f, "MEM[%4x]: ", m);
-      parse_instruction(mem[m]);
 
-      // Transition into NOP sequence
+      // In data areas, write hex values, in code areas, instructions
+      if ((0x3FFF < m && m < 0x8000) || (0x9FFF < m)) {
+        fprintf(f, "0x%X \n", mem[m]);
+      } else {
+        parse_instruction(mem[m]);
+      }
+
+      // Transition to a NOP sequence if it's a 0
       if (mem[m] == 0) {
         is_nop_sequence = 1;
         fputs("...\n", f);
       }
     }
-
-    // In a NOP sequence, transition to an OP sequence
-    else if (mem[m] != 0) {
-      is_nop_sequence = 0;
-      fprintf(f, "MEM[%4x]: ", m);
-      parse_instruction(mem[m]);
-    }
   }
 
-  fputs("\n>>> EOF <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", f);
-  fputs("<<<<<<<<<<<<<<<<<\n", f);
-  }
+  fputs("\n>>> EOLC4 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
+}
