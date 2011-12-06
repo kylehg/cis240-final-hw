@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   for (f = 2; f < argc; f++) {
     input_file = fopen(argv[2], "r");
 
-    do {
+    while (!feof(input_file)) {
       // Read the header
       size = read_word(&word, input_file);
       printf("%4x \n", word);
@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
 
         while (length > 0) {
           read_word(&word, input_file);
-          parse_instruction(word);
           mem_store(type, addr, word);
+          addr++;
           length--;
         }
         break;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         printf("HEADER READ ERROR\n");
       }
 
-    } while (!feof(input_file));
+      }// while (!feof(input_file));
 
 
     fclose(input_file);
