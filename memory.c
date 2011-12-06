@@ -45,27 +45,42 @@ int mem_store(char type, unsigned short addr, unsigned short word){
 }
 
 void do_br(int nzp, short imm9) {
-  printf("BR%c%c%c 0x%4x \n", (((nzp & 0x4) == 0x4) ? 'n' : ' '),
-         (((nzp & 0x2) == 0x2) ? 'z' : ' '),
-         (((nzp & 0x1) == 0x1) ? 'p' : ' '), imm9);
+  char n = ((nzp & 0x4) == 0x4) ? 'n' : ' ';
+  char z = ((nzp & 0x2) == 0x2) ? 'z' : ' ';
+  char p = ((nzp & 0x1) == 0x1) ? 'p' : ' ';
+  printf("BR%c%c%c 0x%4x \n", n, z, p, imm9);
+
 }
 
 void do_add(int rd, int rs, int rt) {
   printf("ADD R%d, R%d, R%d \n", rd, rs, rt);
 
-  
+  reg[rd] = reg[rs] + reg[rt];
+  // SET NZPREG
 }
 void do_mul(int rd, int rs, int rt) {
   printf("MUL R%d, R%d, R%d \n", rd, rs, rt);
+
+  reg[rd] = reg[rs] * reg[rt];
+  // SET NZPREG
 }
 void do_sub(int rd, int rs, int rt) {
   printf("SUB R%d, R%d, R%d \n", rd, rs, rt);
+
+  reg[rd] = reg[rs] - reg[rt];
+  // SET NZPREG
 }
 void do_div(int rd, int rs, int rt) {
   printf("DIV R%d, R%d, R%d \n", rd, rs, rt);
+
+  reg[rd] = reg[rs] / reg[rt];
+  // SET NZPREG
 }
 void do_addi(int rd, int rs, short imm5) {
   printf("ADD R%d, R%d, #%d \n", rd, rs, imm5);
+
+  reg[rd] = reg[rs] + imm5;
+  // SET NZPREG
 }
 
 void do_cmp(int rs, int rt) {
