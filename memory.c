@@ -161,7 +161,10 @@ unsigned short parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
     // BRxxx
-  case 0x0: do_br(I_11_9(word), sext(I_8_0(word), 9)); break;
+  case 0x0: 
+    if (I_11_9(word) != 0) 
+      do_br(I_11_9(word), sext(I_8_0(word), 9)); 
+    break;
 
   case 0x1: // ARITH
     switch (I_5_3(word)) {
@@ -170,7 +173,8 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) do_addi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
+      if (I_5(word)) 
+        do_addi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
       else printf("ARITH ERROR"); //TODO: Instruction error handling
     }
     break;
@@ -186,7 +190,8 @@ unsigned short parse_instruction(unsigned short word) {
     break;
 
   case 0x4: // JSR
-    if (I_11(word) == 0) do_jsrr(I_8_6(word));
+    if (I_11(word) == 0) 
+      do_jsrr(I_8_6(word));
     else do_jsr(I_10_0(word));
     break;
 
@@ -197,7 +202,8 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_or(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) do_andi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
+      if (I_5(word)) 
+        do_andi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
       else printf("LOGIC ERROR"); //TODO: Instruction error handling
     }
     break;
@@ -225,7 +231,8 @@ unsigned short parse_instruction(unsigned short word) {
 
     // JMP & JMPR
   case 0xC:
-    if (I_11(word) == 0) do_jmpr(I_8_6(word));
+    if (I_11(word) == 0) 
+      do_jmpr(I_8_6(word));
     else do_jmp(sext(I_10_0(word), 11));
     break;
 
