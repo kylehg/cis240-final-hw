@@ -20,12 +20,6 @@
 #define I_8_7(i)  ((i >> 7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
 #define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
-#define SEXT5(n)  (n + 0xFFE0)
-#define SEXT6(n)  (n + 0xFFC0)
-#define SEXT7(n)  (n + 0xFF80)
-#define SEXT9(n)  (n + 0xFE00)
-#define SEXT11(n) (n + 0xF800)
-
 #define D 1
 
 #define MEM_LEN 65536
@@ -154,22 +148,20 @@ void do_trap(unsigned short uimm8) {
 }
 
 short sext(short n, unsigned short len) {
-  /*  short ret;
-  if (n & (1 << (len-1))) {
-    ret = 0 - ((1 << len) - n);
-    printf("Sign extension %d, %x\n", ret, n);
-    return ret;
-  } else { 
-    return n;
-    }*/
-  return n;
+  if (len > 15) {
+    fprintf(stderr, "sext(0x%4x, %d): Cannot have length >15 \n", n, len);
+    exit(1);
+  }
+  short a = n << (16 - len);
+  short b = a >> (16 - len);
+  return b;
 }
 
 unsigned short parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
     // BRxxx
-  case 0x0: do_br(I_11_9(word), I_8_0(sext(word, 9))); break;
+  case 0x0: do_br(I_11_9(word), sext(I_8_0(word), 9)); break;
 
   case 0x1: // ARITH
     switch (I_5_3(word)) {
@@ -178,7 +170,7 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) do_addi(I_11_9(word), I_8_6(word), I_4_0(sext(word, 5)));
+      if (I_5(word)) do_addi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
       else printf("ARITH ERROR"); //TODO: Instruction error handling
     }
     break;
@@ -187,7 +179,7 @@ unsigned short parse_instruction(unsigned short word) {
     switch(I_8_7(word)) {
     case 0x0: do_cmp(I_11_9(word), I_2_0(word)); break;
     case 0x1: do_cmpu(I_11_9(word), I_2_0(word)); break;
-    case 0x2: do_cmpi(I_11_9(word), I_6_0(sext(word, 7))); break;
+    case 0x2: do_cmpi(I_11_9(word), sext(I_6_0(word), 7)); break;
     case 0x3: do_cmpiu(I_11_9(word), I_6_0(word)); break;
     default: printf("CMP ERROR"); //TODO: Instruction erro handling
     }
@@ -205,20 +197,20 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_or(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) do_andi(I_11_9(word), I_8_6(word), I_4_0(sext(word, 5)));
+      if (I_5(word)) do_andi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
       else printf("LOGIC ERROR"); //TODO: Instruction error handling
     }
     break;
 
     // LDR & STR
-  case 0x6: do_ldr(I_11_9(word), I_8_6(word), I_5_0(sext(word, 6))); break;
-  case 0x7: do_str(I_11_9(word), I_8_6(word), I_5_0(sext(word, 6))); break;
+  case 0x6: do_ldr(I_11_9(word), I_8_6(word), sext(I_5_0(word), 6)); break;
+  case 0x7: do_str(I_11_9(word), I_8_6(word), sext(I_5_0(word), 6)); break;
 
     // RTI
   case 0x8: do_rti(); break;
 
     //CONST
-  case 0x9: do_const(I_11_9(word), I_8_0(sext(word, 9))); break;
+  case 0x9: do_const(I_11_9(word), sext(I_8_0(word), 9)); break;
 
     // BITSHIFT
   case 0xA:
@@ -234,7 +226,7 @@ unsigned short parse_instruction(unsigned short word) {
     // JMP & JMPR
   case 0xC:
     if (I_11(word) == 0) do_jmpr(I_8_6(word));
-    else do_jmp(I_10_0(sext(word, 11)));
+    else do_jmp(sext(I_10_0(word), 11));
     break;
 
     // HICONST
