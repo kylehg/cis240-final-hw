@@ -250,7 +250,6 @@ void do_hiconst(int rd, unsigned short uimm8) {
 }
 
 
-
 unsigned short parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
