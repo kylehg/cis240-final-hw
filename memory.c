@@ -33,15 +33,30 @@ unsigned short last_addr;
 
 /** @returns 0 if executed properly, 1 if a data-versus-code error, 2 if a
     os-versus-user error. */
-int mem_store(char type, unsigned short addr, unsigned short word){
+void mem_store(char type, unsigned short addr, unsigned short word){
   // OS?
   //  if (perm == 'o' && (0x8000 > addr || addr < 0xA000)) return 2;
   // Return false if attempt to load in incorrect place
-  if (type == 'c' && addr > 0x3FFF) return 1;
-  if (type == 'd' && (addr < 0x4000 || addr > 0x7FFF)) return 1;
+  if (type == 'c' && addr > 0x3FFF) {
+    fprintf(stderr, "mem_store(%c, 0x%4X, 0x%4X): Cannot write to data in code mode. \n", type, addr, word);
+    exit(1);
+  }
+  if (type == 'd' && (addr < 0x4000 || addr > 0x7FFF)) {
+    fprintf(stderr, "mem_store(%c, 0x%4X, 0x%4X): Cannot write to code in data mode. \n", type, addr, word);
+    exit(1);
+  }
 
   mem[addr] = word;
-  return 0;
+}
+
+short sext(short n, unsigned short len) {
+  if (len > 15) {
+    fprintf(stderr, "sext(0x%4x, %d): Cannot have length >15 \n", n, len);
+    exit(1);
+  }
+  short a = n << (16 - len);
+  short b = a >> (16 - len);
+  return b;
 }
 
 void do_br(unsigned short nzp, short imm9) {
@@ -168,16 +183,6 @@ void do_hiconst(int rd, unsigned short uimm8) {
 
 void do_trap(unsigned short uimm8) {
   printf("HICONST 0x%x \n", uimm8);
-}
-
-short sext(short n, unsigned short len) {
-  if (len > 15) {
-    fprintf(stderr, "sext(0x%4x, %d): Cannot have length >15 \n", n, len);
-    exit(1);
-  }
-  short a = n << (16 - len);
-  short b = a >> (16 - len);
-  return b;
 }
 
 unsigned short parse_instruction(unsigned short word) {
