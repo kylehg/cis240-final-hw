@@ -11,41 +11,26 @@
 #define I_5_0(i)  (i & 0x3F) // For IMM6 (AND w/ 63)
 #define I_6_0(i)  (i & 0x7F) // FOR IMM7 (AND w/ 127)
 #define I_7_0(i)  (i & 0xFF) // FOR IMM8 (AND w/ 255)
-#define I_8_0(i)  (i * 0x1FF) // FOR IMM9 (AND w/ 511)
-#define I_10_0(i) (i * 0x7FF) // FOR IMM11 (AND w/ 2047)
+#define I_8_0(i)  (i & 0x1FF) // FOR IMM9 (AND w/ 511)
+#define I_10_0(i) (i & 0x7FF) // FOR IMM11 (AND w/ 2047)
 
 #define I_5(i)    ((i >> 5) & 0x1) // For 1-bit secondary opcodes
 #define I_5_4(i)  ((i >> 4) & 0x3) // For 2-bit secondary opcodes
 #define I_5_3(i)  ((i >> 3) & 0x7) // For 3-bit secondary opcodes
 #define I_8_7(i)  ((i >> 7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
-#define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
+#define I_11(i)   (i >> 11) // For 1-bit secondary opcodes in I[11]
 
 #define D 1
-
 #define MEM_LEN 65536
 #define REG_LEN 8
 
-unsigned short mem[MEM_LEN];
-unsigned short reg[REG_LEN];
+short mem[MEM_LEN];
+short reg[REG_LEN];
 unsigned short pc;
 unsigned short psr;
 unsigned short last_addr;
 
-/** @returns 0 if executed properly, 1 if a data-versus-code error, 2 if a
-    os-versus-user error. */
-void mem_store(char type, unsigned short addr, unsigned short word){
-  // OS?
-  //  if (perm == 'o' && (0x8000 > addr || addr < 0xA000)) return 2;
-  // Return false if attempt to load in incorrect place
-  if (type == 'c' && addr > 0x3FFF) {
-    fprintf(stderr, "mem_store(%c, 0x%4X, 0x%4X): Cannot write to data in code mode. \n", type, addr, word);
-    exit(1);
-  }
-  if (type == 'd' && (addr < 0x4000 || addr > 0x7FFF)) {
-    fprintf(stderr, "mem_store(%c, 0x%4X, 0x%4X): Cannot write to code in data mode. \n", type, addr, word);
-    exit(1);
-  }
-
+void mem_store(unsigned short addr, unsigned short word) {
   mem[addr] = word;
 }
 
@@ -56,134 +41,215 @@ short sext(short n, unsigned short len) {
   }
   short a = n << (16 - len);
   short b = a >> (16 - len);
+  //  printf("sext(): %x -> %x -> %x \n", n, a, b);
   return b;
 }
 
+// Both sets the NZP bits in PSR *and* increments PC
+void set_nzp(short value) {
+  unsigned short nzp;
+
+  if (value > 0) 
+    nzp = 0x1;
+  else if(value == 0)
+    nzp = 0x2;
+  else
+    nzp = 0x4;
+  psr = psr & 0xFFF8; // Set the NZP bits to 000
+  psr += nzp; // Set the NZP bits
+  pc++;
+  //  printf("set_nzp(%d): 0x%X | PC = 0x%4X \n", value, psr, pc);
+}
+
+// Branch
 void do_br(unsigned short nzp, short imm9) {
+  imm9 = sext(imm9, 9);
   unsigned short old_nzp = I_2_0(psr);
   char n = ((nzp & 0x4) == 0x4) ? 'n' : 0;
   char z = ((nzp & 0x2) == 0x2) ? 'z' : 0;
   char p = ((nzp & 0x1) == 0x1) ? 'p' : 0;
   printf("BR%c%c%c 0x%4x \n", n, z, p, imm9);
-
-  if (old_nzp == nzp)
-    pc += 1 + sext(imm9, 9);
-
-  /*
-  psr = psr & 0xFFF8; // Set the NZP bits to 000
-  psr = psr | I_2_0(nzp); // Set the NZP bits
-  */
+  if ((old_nzp & nzp) > 0) {
+    pc += 1 + imm9;
+  } else {
+    pc++;
+  }
 }
 
+// Arithmetic Ops
 void do_add(int rd, int rs, int rt) {
   printf("ADD R%d, R%d, R%d \n", rd, rs, rt);
-
   reg[rd] = reg[rs] + reg[rt];
-  // SET NZPREG
+  set_nzp(reg[rd]);
 }
 void do_mul(int rd, int rs, int rt) {
   printf("MUL R%d, R%d, R%d \n", rd, rs, rt);
-
   reg[rd] = reg[rs] * reg[rt];
-  // SET NZPREG
+  set_nzp(reg[rd]);
 }
 void do_sub(int rd, int rs, int rt) {
   printf("SUB R%d, R%d, R%d \n", rd, rs, rt);
-
   reg[rd] = reg[rs] - reg[rt];
-  // SET NZPREG
+  set_nzp(reg[rd]);
 }
 void do_div(int rd, int rs, int rt) {
   printf("DIV R%d, R%d, R%d \n", rd, rs, rt);
-
   reg[rd] = reg[rs] / reg[rt];
-  // SET NZPREG
+  set_nzp(reg[rd]);
 }
 void do_addi(int rd, int rs, short imm5) {
+  imm5 = sext(imm5, 5);
   printf("ADD R%d, R%d, #%d \n", rd, rs, imm5);
-
   reg[rd] = reg[rs] + imm5;
-  // SET NZPREG
-}
-
-void do_cmp(int rs, int rt) {
-  printf("CMP R%d, R%d \n", rs, rt);
-}
-void do_cmpu(int rs, int rt) {
-  printf("CMPU R%d, R%d \n", rs, rt);
-}
-void do_cmpi(int rs, short imm7) {
-  printf("CMPI R%d, #%d \n", rs, imm7);
-}
-void do_cmpiu(int rs, unsigned short uimm7) {
-  printf("CMPIU R%d, #%d \n", rs, uimm7);
-}
-
-void do_jsr(short imm11) {
-  printf("JSR 0x%x \n", imm11);
-}
-void do_jsrr(int rs) {
-  printf("JSRR R%d \n", rs);
-}
-
-void do_and(int rd, int rs, int rt) {
-  printf("AND R%d, R%d, R%d \n", rd, rs, rt);
-}
-void do_not(int rd, int rs) {
-  printf("NOT R%d, R%d \n", rd, rs);
-}
-void do_or(int rd, int rs, int rt) {
-  printf("OR R%d, R%d, R%d \n", rd, rs, rt);
-}
-void do_xor(int rd, int rs, int rt) {
-  printf("XOR R%d, R%d, R%d \n", rd, rs, rt);
-}
-void do_andi(int rd, int rs, short imm5) {
-  printf("AND R%d, #%d \n", rd, imm5);
-}
-
-void do_ldr(int rd, int rs, short imm6) {
-  printf("LDR R%d, R%d, #%d \n", rd, rs, imm6);
-}
-void do_str(int rt, int rs, short imm6) {
-  printf("STR R%d, R%d, #%d \n", rt, rs, imm6);
-}
-
-void do_rti() {
-  printf("RTI \n");
-}
-
-void do_const(int rd, short imm9) {
-  printf("CONST R%d, 0x%x \n", rd, imm9);
-}
-
-void do_sll(int rd, int rs, unsigned short uimm4) {
-  printf("SLL R%d, R%d, #%d \n", rd, rs, uimm4);
-}
-void do_sra(int rd, int rs, unsigned short uimm4) {
-  printf("SRA R%d, R%d, #%d \n", rd, rs, uimm4);
-}
-void do_srl(int rd, int rs, unsigned short uimm4) {
-  printf("SRL R%d, R%d, #%d \n", rd, rs, uimm4);
+  set_nzp(reg[rd]);
 }
 void do_mod(int rd, int rs, int rt) {
   printf("MOD R%d, R%d, R%d \n", rd, rs, rt);
+  reg[rd] = reg[rs] % reg[rt];
+  set_nzp(reg[rd]);
 }
 
+// Comparisons - return NZP
+void do_cmp(int rs, int rt) {
+  printf("CMP R%d, R%d \n", rs, rt);
+  int cmp = reg[rs] - reg[rt];
+  set_nzp(cmp);
+}
+void do_cmpu(int rs, int rt) {
+  printf("CMPU R%d, R%d \n", rs, rt);
+  int cmp = reg[rs] - reg[rt];
+  set_nzp(cmp);
+}
+void do_cmpi(int rs, short imm7) {
+  imm7 = sext(imm7, 7);
+  printf("CMPI R%d, #%d \n", rs, imm7);
+  int cmp = reg[rs] - imm7;
+  set_nzp(cmp);
+}
+void do_cmpiu(int rs, unsigned short uimm7) {
+  printf("CMPIU R%d, #%d \n", rs, uimm7);
+  int cmp = reg[rs] - uimm7;
+  set_nzp(cmp);
+}
+
+// Jumps
+void do_jsr(short imm11) {
+  printf("JSR 0x%x \n", imm11);
+  reg[7] = pc+1;
+  pc = (pc & 0x8000) | (imm11 << 4);
+}
+void do_jsrr(int rs) {
+  printf("JSRR R%d \n", rs);
+  reg[7] = pc+1;
+  pc = reg[rs];
+}
 void do_jmpr(int rs) {
   printf("JMPR R%d \n", rs);
+  pc = reg[rs];
 }
 void do_jmp(short imm11) {
+  imm11 = sext(imm11, 11);
   printf("JMP 0x%x \n", imm11);
+  pc += 1 + imm11;
 }
 
+// Logical Operations
+void do_and(int rd, int rs, int rt) {
+  printf("AND R%d, R%d, R%d \n", rd, rs, rt);
+  reg[rd] = reg[rs] & reg[rt];
+  set_nzp(reg[rd]);
+}
+void do_not(int rd, int rs) {
+  printf("NOT R%d, R%d \n", rd, rs);
+  reg[rd] = ~reg[rs];
+  set_nzp(reg[rd]);
+}
+void do_or(int rd, int rs, int rt) {
+  printf("OR R%d, R%d, R%d \n", rd, rs, rt);
+  reg[rd] = reg[rs] | reg[rt];
+  set_nzp(reg[rd]);
+}
+void do_xor(int rd, int rs, int rt) {
+  printf("XOR R%d, R%d, R%d \n", rd, rs, rt);
+  reg[rd] = reg[rs] ^ reg[rt];
+  set_nzp(reg[rd]);
+}
+void do_andi(int rd, int rs, short imm5) {
+  imm5 = sext(imm5, 5);
+  printf("AND R%d, #%d \n", rd, imm5);
+  reg[rd] = reg[rs] & imm5;
+  set_nzp(reg[rd]);
+}
+
+// Shift Ops
+void do_sll(int rd, int rs, unsigned short uimm4) {
+  printf("SLL R%d, R%d, #%d \n", rd, rs, uimm4);
+  reg[rd] = reg[rs] << uimm4;
+  set_nzp(reg[rd]);
+}
+void do_sra(int rd, int rs, unsigned short uimm4) {
+  printf("SRA R%d, R%d, #%d \n", rd, rs, uimm4);
+  short shift = reg[rs] >> uimm4;
+  reg[rd] = shift;
+  set_nzp(reg[rd]);
+}
+void do_srl(int rd, int rs, unsigned short uimm4) {
+  printf("SRL R%d, R%d, #%d \n", rd, rs, uimm4);
+  unsigned short shift = reg[rs] >> uimm4;
+  reg[rd] = shift;
+  set_nzp(reg[rd]);
+}
+
+// Memory Ops
+void do_ldr(int rd, int rs, short imm6) {
+  imm6 = sext(imm6, 6);
+  printf("LDR R%d, R%d, #%d \n", rd, rs, imm6);
+  reg[rd] = mem[reg[rs] + imm6];
+  set_nzp(reg[rd]);
+}
+void do_str(int rt, int rs, short imm6) {
+  imm6 = sext(imm6, 6);
+  unsigned short addr = reg[rs] + imm6;
+  printf("STR R%d, R%d, #%d \n", rt, rs, imm6);
+  if (psr < 0x8000 && addr >= 0x8000) { // If PSR[15] = 0{
+    fprintf(stderr, "Illegal memory access: Not in OS mode! \n");
+    exit(1);
+  }
+  if (addr < 0x4000 || (0x7FFF < addr && addr < 0xA000)) {
+    fprintf(stderr, "Illegal memory access: Cannot write to code sections!\n");
+    exit(1);
+  }
+  mem[reg[rs] + imm6] = reg[rt];
+  pc++; // Since other functions incr PC w/ set_nzp(), but STR doesn't set NZP
+}
+
+// OS Ops
+void do_rti() {
+  pc = reg[7];
+  psr = psr & 0x7FFF; //PSR[15] = 0
+  printf("RTI \n");
+}
+void do_trap(unsigned short uimm8) {
+  printf("TRAP 0x%x \n", uimm8);
+  reg[7] = pc+1;
+  pc = 0x8000 | uimm8;
+  psr = psr | 0x8000;
+}
+
+// Register Ops
+void do_const(int rd, short imm9) {
+  imm9 = sext(imm9, 9);
+  printf("CONST R%d, 0x%x \n", rd, imm9);
+  reg[rd] = imm9;
+  set_nzp(reg[rd]);
+}
 void do_hiconst(int rd, unsigned short uimm8) {
   printf("HICONST R%d, 0x%x \n", rd, uimm8);
+  reg[rd] = (reg[rd] & 0xFF) | (uimm8 << 8);
+  set_nzp(reg[rd]);
 }
 
-void do_trap(unsigned short uimm8) {
-  printf("HICONST 0x%x \n", uimm8);
-}
+
 
 unsigned short parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
@@ -202,7 +268,7 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
       if (I_5(word)) 
-        do_addi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
+        do_addi(I_11_9(word), I_8_6(word), I_4_0(word));
       else printf("ARITH ERROR"); //TODO: Instruction error handling
     }
     break;
@@ -211,7 +277,7 @@ unsigned short parse_instruction(unsigned short word) {
     switch(I_8_7(word)) {
     case 0x0: do_cmp(I_11_9(word), I_2_0(word)); break;
     case 0x1: do_cmpu(I_11_9(word), I_2_0(word)); break;
-    case 0x2: do_cmpi(I_11_9(word), sext(I_6_0(word), 7)); break;
+    case 0x2: do_cmpi(I_11_9(word), I_6_0(word)); break;
     case 0x3: do_cmpiu(I_11_9(word), I_6_0(word)); break;
     default: printf("CMP ERROR"); //TODO: Instruction erro handling
     }
@@ -231,20 +297,20 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
       if (I_5(word)) 
-        do_andi(I_11_9(word), I_8_6(word), sext(I_4_0(word), 5));
+        do_andi(I_11_9(word), I_8_6(word), I_4_0(word));
       else printf("LOGIC ERROR"); //TODO: Instruction error handling
     }
     break;
 
     // LDR & STR
-  case 0x6: do_ldr(I_11_9(word), I_8_6(word), sext(I_5_0(word), 6)); break;
-  case 0x7: do_str(I_11_9(word), I_8_6(word), sext(I_5_0(word), 6)); break;
+  case 0x6: do_ldr(I_11_9(word), I_8_6(word), I_5_0(word)); break;
+  case 0x7: do_str(I_11_9(word), I_8_6(word), I_5_0(word)); break;
 
     // RTI
   case 0x8: do_rti(); break;
 
     //CONST
-  case 0x9: do_const(I_11_9(word), sext(I_8_0(word), 9)); break;
+  case 0x9: do_const(I_11_9(word), I_8_0(word)); break;
 
     // BITSHIFT
   case 0xA:
@@ -261,7 +327,7 @@ unsigned short parse_instruction(unsigned short word) {
   case 0xC:
     if (I_11(word) == 0) 
       do_jmpr(I_8_6(word));
-    else do_jmp(sext(I_10_0(word), 11));
+    else do_jmp(I_10_0(word));
     break;
 
     // HICONST
@@ -277,6 +343,27 @@ unsigned short parse_instruction(unsigned short word) {
 
 }
 
+void print_reg_state(FILE *f) {
+  int r;
+  fprintf(f, "PC x%X: ", pc);
+  for (r = 0; r < REG_LEN; r++)
+    fprintf(f, "R%d x%X|", r, reg[r]);
+  fprintf(f, "PSR x%X \n", psr);
+}
+
+
+void run_lc4(unsigned short last_pc) {
+  pc = 0;
+  psr = 0x2;
+  
+  while (last_pc > 0) {
+    //    print_reg_state(stdout);
+    parse_instruction(mem[pc]);
+    last_pc--;
+  } 
+  printf("Done. \n");
+}
+
 
 /**
  * Print the state of the machine, passing over long stretches of nothingness
@@ -285,13 +372,7 @@ void print_lc4_state(FILE *f) {
   int r, m, is_nop_sequence;
 
   fputs("\n>>> REGISTERS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
-
-  for (r = 0; r < REG_LEN; r++)
-    fprintf(f, "R%d: %x | ", r, reg[r]);
-
-  fprintf(f, "\nPC: %d | PSR: 0x%4X \n", pc, psr);
-
-
+  print_reg_state(f);
 
   fputs("\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
 
@@ -300,14 +381,16 @@ void print_lc4_state(FILE *f) {
     // Only print if there's content, or if it's the first 0 of a NOP sequence.
     if (mem[m] != 0 || !is_nop_sequence) {
       is_nop_sequence = 0;
-      fprintf(f, "MEM[%4x]: ", m);
+      fprintf(f, "MEM[%4x]: 0x%X \n", m, mem[m]);
 
       // In data areas, write hex values, in code areas, instructions
+      /*
       if ((0x3FFF < m && m < 0x8000) || (0x9FFF < m)) {
         fprintf(f, "0x%X \n", mem[m]);
       } else {
         parse_instruction(mem[m]);
       }
+      */
 
       // Transition to a NOP sequence if it's a 0
       if (mem[m] == 0) {

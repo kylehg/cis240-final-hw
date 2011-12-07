@@ -20,16 +20,22 @@ int read_word(unsigned short *buffer, FILE *f) {
 }
 
 int main(int argc, char *argv[]) {
-  // TODO: Check for arg length;
+  if (argc < 4) {
+    fprintf(stderr, 
+            "usage: trace output_file last_pc file1.obj [file2.obj [...]] \n");
+  }
 
   FILE *output_file, *input_file;
-  unsigned short word, addr, length, line, file_index, letter, f;
   char type;
+  unsigned short word, addr, length, line, file_index, letter, f, last_pc;
   int size;
 
+  output_file = fopen(argv[1], "r");
+  last_pc = (unsigned int) atoi(argv[2]);
+
   // For each input file
-  for (f = 2; f < argc; f++) {
-    input_file = fopen(argv[2], "r");
+  for (f = 3; f < argc; f++) {
+    input_file = fopen(argv[3], "r");
 
     while (!feof(input_file)) {
       // Read the header
@@ -45,7 +51,7 @@ int main(int argc, char *argv[]) {
 
         while (length > 0) {
           read_word(&word, input_file);
-          mem_store(type, addr, word);
+          mem_store(addr, word);
           addr++;
           length--;
         }
@@ -86,8 +92,9 @@ int main(int argc, char *argv[]) {
         printf("HEADER READ ERROR\n");
       }
 
-      }// while (!feof(input_file));
+      }
 
+    run_lc4(0x0200);
 
     fclose(input_file);
   }

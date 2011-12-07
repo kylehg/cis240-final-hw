@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int mem_store(char type, unsigned short addr, unsigned short word);
+int mem_store(unsigned short addr, unsigned short word);
 
-void do_br(int nzp, short imm9);
+short sext(short n, unsigned short len);
+
+void set_nzp(short value);
+
+void do_br(unsigned short nzp, short imm9);
 
 void do_add(int rd, int rs, int rt);
 void do_mul(int rd, int rs, int rt);
@@ -44,8 +48,8 @@ void do_hiconst(int rd, unsigned short uimm8);
 
 void do_trap(unsigned short uimm8);
 
-short sext(short n, unsigned short len);
-
 unsigned short parse_instruction(unsigned short word);
+
+void run_lc4(unsigned short last_pc);
 
 void print_lc4_state(FILE *f);
