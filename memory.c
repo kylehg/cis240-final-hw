@@ -44,12 +44,15 @@ int mem_store(char type, unsigned short addr, unsigned short word){
   return 0;
 }
 
-void do_br(int nzp, short imm9) {
+void do_br(short nzp, short imm9) {
   char n = ((nzp & 0x4) == 0x4) ? 'n' : ' ';
   char z = ((nzp & 0x2) == 0x2) ? 'z' : ' ';
   char p = ((nzp & 0x1) == 0x1) ? 'p' : ' ';
   printf("BR%c%c%c 0x%4x \n", n, z, p, imm9);
 
+  psr = psr & 0xFFF8; // Set the NZP bits to 000
+  psr = psr | I_2_0(nzp); // Set the NZP bits
+  pc += 1 + sext(imm9, 9);
 }
 
 void do_add(int rd, int rs, int rt) {
@@ -178,7 +181,7 @@ unsigned short parse_instruction(unsigned short word) {
     // BRxxx
   case 0x0: 
     if (I_11_9(word) != 0) 
-      do_br(I_11_9(word), sext(I_8_0(word), 9)); 
+      do_br(I_11_9(word), I_8_0(word)); 
     break;
 
   case 0x1: // ARITH
