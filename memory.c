@@ -44,15 +44,20 @@ int mem_store(char type, unsigned short addr, unsigned short word){
   return 0;
 }
 
-void do_br(short nzp, short imm9) {
-  char n = ((nzp & 0x4) == 0x4) ? 'n' : ' ';
-  char z = ((nzp & 0x2) == 0x2) ? 'z' : ' ';
-  char p = ((nzp & 0x1) == 0x1) ? 'p' : ' ';
+void do_br(unsigned short nzp, short imm9) {
+  unsigned short old_nzp = I_2_0(psr);
+  char n = ((nzp & 0x4) == 0x4) ? 'n' : 0;
+  char z = ((nzp & 0x2) == 0x2) ? 'z' : 0;
+  char p = ((nzp & 0x1) == 0x1) ? 'p' : 0;
   printf("BR%c%c%c 0x%4x \n", n, z, p, imm9);
 
+  if (old_nzp == nzp)
+    pc += 1 + sext(imm9, 9);
+
+  /*
   psr = psr & 0xFFF8; // Set the NZP bits to 000
   psr = psr | I_2_0(nzp); // Set the NZP bits
-  pc += 1 + sext(imm9, 9);
+  */
 }
 
 void do_add(int rd, int rs, int rt) {
