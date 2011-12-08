@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include "linkedlist.h"
 
-#define MAX_LINE_LENGTH 200
+#define MAX_LINE_LENGTH 120
 
 void strtoupper(char *str) {
   int i;
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 
   // Check for the correct number of args
   if (argc != 2) {
-    printf("usage: %s filename.txt\n", argv[0]);
+    fprintf(stderr, "usage: %s filename.txt\n", argv[0]);
     exit(1);
   }
 
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
   // If fopen() returns a null pointer
   if (input_file == 0) {
-    printf("Could not open file\n");
+    fprintf(stderr, "Could not open file\n");
     exit(1);
   }
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
       strtoupper(name);
       head = update(head, name, number);
     } else {
-      printf("...ERROR: improperly formatted line\n");
+      fprintf(stderr, "...ERROR: improperly formatted line\n");
       exit(1);
     }
   }

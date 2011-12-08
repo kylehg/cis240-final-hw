@@ -61,14 +61,16 @@ list_item *update(list_item *head, char *name, int number) {
     // Alocate and check the item struct itself.
     item = malloc(sizeof(*item));    
     if (item == NULL) {
-      printf("update(): malloc() failed to allocate a new list element.\n");
+      fprintf(stderr, 
+              "update(): malloc() failed to allocate a new list element.\n");
       exit(1);
     }
 
     // Allocate and check the name.
     item->name = malloc(strlen(name) + 1); // +1 to leave a space for null
     if (item->name == NULL) {
-      printf("update(): malloc() failed to allocate a new element name.\n");
+      fprintf(stderr, 
+              "update(): malloc() failed to allocate a new element name.\n");
       exit(1);
     }
     strcpy(item->name, name);
@@ -134,7 +136,7 @@ list_item *delete(list_item *head, list_item *item) {
 
 void print_list(list_item *head) {
   list_item *item = head;
-
+  printf("Final order: \n");
   while (item) {
     printf("%s: %d\n", item->name, item->number);
     item = item->next;
