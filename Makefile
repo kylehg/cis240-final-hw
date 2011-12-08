@@ -5,3 +5,8 @@ shopper: shopper.c linkedlist.c linkedlist.h
 
 trace: trace.c memory.c memory.h
 	clang -o trace trace.c memory.c
+
+test: test.c
+	clang -o test test.c
+	./test
+	rm test
