@@ -136,9 +136,8 @@ list_item *delete(list_item *head, list_item *item) {
 
 void print_list(list_item *head) {
   list_item *item = head;
-  printf("Final order: \n");
   while (item) {
-    printf("%s: %d\n", item->name, item->number);
+    printf("%s %d\n", item->name, item->number);
     item = item->next;
   }
 }
