@@ -410,7 +410,7 @@ void run_lc4(unsigned short last_pc, FILE *output_file) {
     fwrite(&pc, sizeof(pc), 1, output_file);
     fwrite(&mem[pc], sizeof(mem[pc]), 1, output_file);
     parse_instruction(mem[pc]);
-    print_reg_state();
+    //    print_reg_state();
   } 
   printf("Done. \n");
 }
