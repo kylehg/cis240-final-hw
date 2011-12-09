@@ -14,11 +14,11 @@
 #define I_8_0(i)  (i & 0x1FF) // FOR IMM9 (AND w/ 511)
 #define I_10_0(i) (i & 0x7FF) // FOR IMM11 (AND w/ 2047)
 
-#define I_5(i)    ((i >>  5) & 0x1) // For 1-bit secondary opcodes
-#define I_5_4(i)  ((i >>  4) & 0x3) // For 2-bit secondary opcodes
-#define I_5_3(i)  ((i >>  3) & 0x7) // For 3-bit secondary opcodes
-#define I_8_7(i)  ((i >>  7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
-#define I_11(i)   ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
+#define I_5(i)   ((i >>  5) & 0x1) // For 1-bit secondary opcodes
+#define I_5_4(i) ((i >>  4) & 0x3) // For 2-bit secondary opcodes
+#define I_5_3(i) ((i >>  3) & 0x7) // For 3-bit secondary opcodes
+#define I_8_7(i) ((i >>  7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
+#define I_11(i)  ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
 #define D 1
 #define MEM_LEN 65536
@@ -355,10 +355,9 @@ void run_lc4(unsigned short last_pc) {
   pc = 0;
   psr = 0x2;
   
-  while (last_pc > 0) {
+  while (last_pc != pc) {
     //    print_reg_state(stdout);
     parse_instruction(mem[pc]);
-    last_pc--;
   } 
   printf("Done. \n");
 }

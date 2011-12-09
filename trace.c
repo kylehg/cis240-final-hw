@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
 
       }
 
-    run_lc4(0x0200);
+    run_lc4(last_pc);
 
     fclose(input_file);
   }
