@@ -37,13 +37,6 @@ void mem_store(unsigned short addr, unsigned short word) {
   mem[addr] = word;
 }
 
-/**
- * A simple interface for getting things from memory.
- */
-short mem_load(unsigned short addr) {
-  return mem[addr];
-}
-
 
 /**
  * Sign extend the given len-bit number.
@@ -233,22 +226,23 @@ void do_srl(int rd, int rs, unsigned short uimm4) {
 void do_ldr(int rd, int rs, short imm6) {
   imm6 = sext(imm6, 6);
   printf("LDR R%d, R%d, #%d \n", rd, rs, imm6);
-  reg[rd] = mem[reg[rs] + imm6];
+  reg[rd] = mem[(unsigned short) reg[rs] + imm6];
   set_nzp(reg[rd]);
 }
 void do_str(int rt, int rs, short imm6) {
   imm6 = sext(imm6, 6);
-  unsigned short addr = reg[rs] + imm6;
+  unsigned short addr = (unsigned short) reg[rs] + imm6;
   printf("STR R%d, R%d, #%d \n", rt, rs, imm6);
-  if (psr < 0x8000 && addr >= 0x8000) { // If PSR[15] = 0{
+  // IF PSR[15] = 0 and trying to write to OS:
+  if (psr < 0x8000 && addr >= 0x8000) {
     fprintf(stderr, "Illegal memory access: Not in OS mode! \n");
     exit(1);
   }
-  if (addr < 0x4000 || (0x7FFF < addr && addr < 0xA000)) {
+  if (addr < 0x2000 || (0x7FFF < addr && addr < 0xA000)) {
     fprintf(stderr, "Illegal memory access: Cannot write to code sections!\n");
     exit(1);
   }
-  mem[reg[rs] + imm6] = reg[rt];
+  mem[addr] = reg[rt];
   pc++; // Since other functions incr PC w/ set_nzp(), but STR doesn't set NZP
 }
 
@@ -293,6 +287,7 @@ void parse_instruction(unsigned short word) {
   case 0x0: 
     if (I_11_9(word) != 0) 
       do_br(I_11_9(word), I_8_0(word)); 
+    else pc++;
     break;
 
   case 0x1: // ARITH
@@ -390,6 +385,19 @@ void parse_instruction(unsigned short word) {
 
 
 /**
+ * Print the register, PC, and PSR state to stdout.
+ */
+void print_reg_state() {
+  int r;
+  printf("PC x%hX: ", pc);
+  for (r = 0; r < REG_LEN; r++)
+    printf("R%d x%hX|", r, reg[r]);
+  printf("PSR x%hX \n", psr);
+}
+
+
+
+/**
  * Run the LC4 machine on the loaded memory.
  * @param last_pc The PC to stop on.
  * @param output_file The file to print to.
@@ -398,23 +406,13 @@ void run_lc4(unsigned short last_pc, FILE *output_file) {
   pc = 0;
   psr = 0x2;
   
-  while (last_pc != pc) {
+  while (pc != last_pc + 1) {
+    fwrite(&pc, sizeof(pc), 1, output_file);
+    fwrite(&mem[pc], sizeof(mem[pc]), 1, output_file);
     parse_instruction(mem[pc]);
+    print_reg_state();
   } 
   printf("Done. \n");
-}
-
-
-
-/**
- * Print the register, PC, and PSR state to stdout.
- */
-void print_reg_state() {
-  int r;
-  printf("PC x%4hX: ", pc);
-  for (r = 0; r < REG_LEN; r++)
-    printf("R%d x%4hX|", r, reg[r]);
-  printf("PSR x%4hX \n", psr);
 }
 
 
