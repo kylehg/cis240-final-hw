@@ -20,7 +20,6 @@
 #define I_8_7(i) ((i >>  7) & 0x3) // For 2-bit secondary opcodes a I[8:7]
 #define I_11(i)  ((i >> 11) & 0x1) // For 1-bit secondary opcodes in I[11]
 
-#define D 1
 #define MEM_LEN 65536
 #define REG_LEN 8
 
@@ -30,10 +29,28 @@ unsigned short pc;
 unsigned short psr;
 unsigned short last_addr;
 
+
+/**
+ * A simple interface for storing things in memory.
+ */
 void mem_store(unsigned short addr, unsigned short word) {
   mem[addr] = word;
 }
 
+/**
+ * A simple interface for getting things from memory.
+ */
+short mem_load(unsigned short addr) {
+  return mem[addr];
+}
+
+
+/**
+ * Sign extend the given len-bit number.
+ * @param n The number.
+ * @param len The length of the number.
+ * @return The sign-extended number.
+ */
 short sext(short n, unsigned short len) {
   if (len > 15) {
     fprintf(stderr, "sext(0x%4x, %d): Cannot have length >15 \n", n, len);
@@ -45,7 +62,12 @@ short sext(short n, unsigned short len) {
   return b;
 }
 
-// Both sets the NZP bits in PSR *and* increments PC
+
+
+/**
+ * Set the NZP bits and increments PC.
+ * @param value The value to be tested for setting the NZP bits.
+ */
 void set_nzp(short value) {
   unsigned short nzp;
 
@@ -61,6 +83,7 @@ void set_nzp(short value) {
   //  printf("set_nzp(%d): 0x%X | PC = 0x%4X \n", value, psr, pc);
 }
 
+
 // Branch
 void do_br(unsigned short nzp, short imm9) {
   imm9 = sext(imm9, 9);
@@ -75,6 +98,7 @@ void do_br(unsigned short nzp, short imm9) {
     pc++;
   }
 }
+
 
 // Arithmetic Ops
 void do_add(int rd, int rs, int rt) {
@@ -109,7 +133,8 @@ void do_mod(int rd, int rs, int rt) {
   set_nzp(reg[rd]);
 }
 
-// Comparisons - return NZP
+
+// Comparisons
 void do_cmp(int rs, int rt) {
   printf("CMP R%d, R%d \n", rs, rt);
   short cmp = (short) reg[rs] - (short) reg[rt];
@@ -132,6 +157,7 @@ void do_cmpiu(int rs, unsigned short uimm7) {
   set_nzp(cmp);
 }
 
+
 // Jumps
 void do_jsr(short imm11) {
   printf("JSR 0x%x \n", imm11);
@@ -152,6 +178,7 @@ void do_jmp(short imm11) {
   printf("JMP 0x%x \n", imm11);
   pc += 1 + imm11;
 }
+
 
 // Logical Operations
 void do_and(int rd, int rs, int rt) {
@@ -181,6 +208,7 @@ void do_andi(int rd, int rs, short imm5) {
   set_nzp(reg[rd]);
 }
 
+
 // Shift Ops
 void do_sll(int rd, int rs, unsigned short uimm4) {
   printf("SLL R%d, R%d, #%d \n", rd, rs, uimm4);
@@ -199,6 +227,7 @@ void do_srl(int rd, int rs, unsigned short uimm4) {
   reg[rd] = shift;
   set_nzp(reg[rd]);
 }
+
 
 // Memory Ops
 void do_ldr(int rd, int rs, short imm6) {
@@ -223,6 +252,7 @@ void do_str(int rt, int rs, short imm6) {
   pc++; // Since other functions incr PC w/ set_nzp(), but STR doesn't set NZP
 }
 
+
 // OS Ops
 void do_rti() {
   pc = reg[7];
@@ -235,6 +265,7 @@ void do_trap(unsigned short uimm8) {
   pc = 0x8000 | uimm8;
   psr = psr | 0x8000;
 }
+
 
 // Register Ops
 void do_const(int rd, short imm9) {
@@ -250,6 +281,11 @@ void do_hiconst(int rd, unsigned short uimm8) {
 }
 
 
+
+/**
+ * Parse a 2-byte word and execute the proper LC4 function.
+ * @param word The instruction to parse.
+ */
 void parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
@@ -351,61 +387,64 @@ void parse_instruction(unsigned short word) {
   }
 }
 
-void print_reg_state(FILE *f) {
-  int r;
-  fprintf(f, "PC x%X: ", pc);
-  for (r = 0; r < REG_LEN; r++)
-    fprintf(f, "R%d x%X|", r, reg[r]);
-  fprintf(f, "PSR x%X \n", psr);
-}
 
 
-void run_lc4(unsigned short last_pc) {
+/**
+ * Run the LC4 machine on the loaded memory.
+ * @param last_pc The PC to stop on.
+ * @param output_file The file to print to.
+ */
+void run_lc4(unsigned short last_pc, FILE *output_file) {
   pc = 0;
   psr = 0x2;
   
   while (last_pc != pc) {
-    //    print_reg_state(stdout);
     parse_instruction(mem[pc]);
   } 
   printf("Done. \n");
 }
 
 
+
 /**
- * Print the state of the machine, passing over long stretches of nothingness
+ * Print the register, PC, and PSR state to stdout.
  */
-void print_lc4_state(FILE *f) {
+void print_reg_state() {
+  int r;
+  printf("PC x%4hX: ", pc);
+  for (r = 0; r < REG_LEN; r++)
+    printf("R%d x%4hX|", r, reg[r]);
+  printf("PSR x%4hX \n", psr);
+}
+
+
+
+/**
+ * Print the state of the machine to stdout, passing over long stretches of 
+ * nothingness.
+ */
+void print_lc4_state() {
   int r, m, is_nop_sequence;
 
-  fputs("\n>>> REGISTERS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
-  print_reg_state(f);
+  printf("\n>>> REGISTERS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  print_reg_state();
 
-  fputs("\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
+  printf("\n>>> MEMORY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 
   for (m = 0; m < MEM_LEN; m++) {
 
     // Only print if there's content, or if it's the first 0 of a NOP sequence.
     if (mem[m] != 0 || !is_nop_sequence) {
       is_nop_sequence = 0;
-      fprintf(f, "MEM[%4x]: 0x%X \n", m, mem[m]);
-
-      // In data areas, write hex values, in code areas, instructions
-      /*
-      if ((0x3FFF < m && m < 0x8000) || (0x9FFF < m)) {
-        fprintf(f, "0x%X \n", mem[m]);
-      } else {
-        parse_instruction(mem[m]);
-      }
-      */
+      printf("MEM[%4x]: 0x%X \n", m, mem[m]);
 
       // Transition to a NOP sequence if it's a 0
       if (mem[m] == 0) {
         is_nop_sequence = 1;
-        fputs("...\n", f);
+        printf("...\n");
       }
     }
   }
 
-  fputs("\n>>> EOLC4 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", f);
+  printf("\n>>> EOLC4 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 }
