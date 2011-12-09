@@ -112,23 +112,23 @@ void do_mod(int rd, int rs, int rt) {
 // Comparisons - return NZP
 void do_cmp(int rs, int rt) {
   printf("CMP R%d, R%d \n", rs, rt);
-  int cmp = reg[rs] - reg[rt];
+  short cmp = (short) reg[rs] - (short) reg[rt];
   set_nzp(cmp);
 }
 void do_cmpu(int rs, int rt) {
   printf("CMPU R%d, R%d \n", rs, rt);
-  int cmp = reg[rs] - reg[rt];
+  unsigned short cmp = reg[rs] - reg[rt];
   set_nzp(cmp);
 }
 void do_cmpi(int rs, short imm7) {
   imm7 = sext(imm7, 7);
   printf("CMPI R%d, #%d \n", rs, imm7);
-  int cmp = reg[rs] - imm7;
+  short cmp = (short) reg[rs] - imm7;
   set_nzp(cmp);
 }
 void do_cmpiu(int rs, unsigned short uimm7) {
   printf("CMPIU R%d, #%d \n", rs, uimm7);
-  int cmp = reg[rs] - uimm7;
+  unsigned short cmp = reg[rs] - uimm7;
   set_nzp(cmp);
 }
 
@@ -250,7 +250,7 @@ void do_hiconst(int rd, unsigned short uimm8) {
 }
 
 
-unsigned short parse_instruction(unsigned short word) {
+void parse_instruction(unsigned short word) {
   switch (I_OP(word)) {
 
     // BRxxx
@@ -266,9 +266,12 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_sub(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_div(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) 
+      if (I_5(word)) {
         do_addi(I_11_9(word), I_8_6(word), I_4_0(word));
-      else printf("ARITH ERROR"); //TODO: Instruction error handling
+      } else {
+	fprintf(stderr, "Error parsing arith instruction.\n"); 
+	exit(1);
+      }
     }
     break;
 
@@ -278,7 +281,9 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x1: do_cmpu(I_11_9(word), I_2_0(word)); break;
     case 0x2: do_cmpi(I_11_9(word), I_6_0(word)); break;
     case 0x3: do_cmpiu(I_11_9(word), I_6_0(word)); break;
-    default: printf("CMP ERROR"); //TODO: Instruction erro handling
+    default: 
+      fprintf(stderr, "Error parsing cmp instruction.\n"); 
+      exit(1);
     }
     break;
 
@@ -295,9 +300,12 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x2: do_or(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     case 0x3: do_xor(I_11_9(word), I_8_6(word), I_2_0(word)); break;
     default:
-      if (I_5(word)) 
+      if (I_5(word)) {
         do_andi(I_11_9(word), I_8_6(word), I_4_0(word));
-      else printf("LOGIC ERROR"); //TODO: Instruction error handling
+      } else {
+	fprintf(stderr, "Error parsing logic instruction.\n"); 
+	exit(1);
+      }
     }
     break;
 
@@ -318,7 +326,9 @@ unsigned short parse_instruction(unsigned short word) {
     case 0x1: do_sra(I_11_9(word), I_8_6(word), I_3_0(word)); break;
     case 0x2: do_srl(I_11_9(word), I_8_6(word), I_3_0(word)); break;
     case 0x3: do_mod(I_11_9(word), I_8_6(word), I_2_0(word)); break;
-    default: printf("BITSHIFT ERROR\n"); //TODO: Instruction error handling
+    default: 
+      fprintf(stderr, "Error parsing bitshift instruction.\n"); 
+      exit(1);
     }
     break;
 
@@ -335,11 +345,10 @@ unsigned short parse_instruction(unsigned short word) {
     // TRAP
   case 0xF: do_trap(I_7_0(word)); break;
 
-  default: printf("OPCODE ERROR"); //TODO Instruction error handling
+  default: 
+    fprintf(stderr, "Error parsing instruction opcode.\n");
+    exit(1);
   }
-
-  return I_OP(word);
-
 }
 
 void print_reg_state(FILE *f) {

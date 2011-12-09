@@ -1,17 +1,25 @@
 /**
- * memory.c: Handles the memory management.
+ * trace.c: The main logic.
  *
- * @author: Kyle Hardgrave <kyleh>
- * @package: trace
+ * @author Kyle Hardgrave <kyleh>
+ * @package trace
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "memory.h"
 
+// Fix endian
 #define REVERSE(x) (((x & 0x00ff) << 8) + (x >> 8))
-#define D 1
 
+
+
+/**
+ * Read a 2-byte word from a file to a buffer.
+ * @param buffer Pointer to the 2-byte short to store the word.
+ * @param f Pointer to the file to read from.
+ * @return 1 if the read was successful, else 0
+ */
 int read_word(unsigned short *buffer, FILE *f) {
   int size;
   size = fread(buffer, 2, 1, f);
@@ -19,6 +27,11 @@ int read_word(unsigned short *buffer, FILE *f) {
   return 1 == size;
 }
 
+
+
+/**
+ * The main logic - read the headers and do stuff with them.
+ */
 int main(int argc, char *argv[]) {
   if (argc < 4) {
     fprintf(stderr, 
@@ -30,17 +43,25 @@ int main(int argc, char *argv[]) {
   unsigned short word, addr, length, line, file_index, letter, f, last_pc;
   int size;
 
-  output_file = fopen(argv[1], "r");
+  output_file = fopen(argv[1], "w");
+  if (output_file == 0) {
+    fprintf(stderr, "Could not open the output file. \n");
+    exit(1);
+  }
+ 
   last_pc = (unsigned int) atoi(argv[2]);
 
   // For each input file
   for (f = 3; f < argc; f++) {
-    input_file = fopen(argv[3], "r");
+    input_file = fopen(argv[f], "r");
+    if (input_file == 0) {
+      fprintf(stderr, "Could not open input file '%s'. \n", argv[f]);
+    }
 
     while (!feof(input_file)) {
       // Read the header
       size = read_word(&word, input_file);
-      printf("%4x \n", word);
+
       switch (word) {
 
       case 0xcade: //Code
@@ -49,6 +70,7 @@ int main(int argc, char *argv[]) {
         read_word(&addr, input_file);
         read_word(&length, input_file);
 
+	// Read through the code/data contents, storing them in memory.
         while (length > 0) {
           read_word(&word, input_file);
           mem_store(addr, word);
@@ -58,34 +80,30 @@ int main(int argc, char *argv[]) {
         break;
 
       case 0xc3b7: //Symbol
-        type = 's';
         read_word(&addr, input_file);
         read_word(&length, input_file);
-        printf("C3B7: <%4x> %d \n", addr, length);
+
+	// Read through the symbol, doing nothing with them.
         while (length > 0) {
           fread(&letter, 1, 1, input_file);
-          printf("...%2x \n", letter);
           length--;
         }
         break;
 
       case 0xf17e: //File name
-        type = 'f';
         read_word(&length, input_file);
-        printf("F17E: %d \n", length);
+
+	// Read through the file name, doing nothing with them.
         while (length > 0) {
           fread(&letter, 1, 1, input_file);
-          printf("...%2x \n", letter);
           length--;
         }
         break;
 
       case 0x715e: //Line number
-        type = 'l';
         read_word(&addr, input_file);
         read_word(&line, input_file);
         read_word(&file_index, input_file);
-        printf("715E: <0x%4x> %d %d \n", addr, line, file_index);
         break;
 
       default:
@@ -94,13 +112,12 @@ int main(int argc, char *argv[]) {
 
       }
 
-    run_lc4(last_pc);
+    run_lc4(last_pc, output_file);
 
     fclose(input_file);
   }
-
-  output_file = fopen(argv[1], "w");
-  print_lc4_state(stdout);
+  fclose(output_file);
+  //  print_lc4_state(stdout);
   return 0;
 
 }
