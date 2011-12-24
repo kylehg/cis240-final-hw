@@ -7,17 +7,17 @@ Everything in shopper is pretty straightforward. `shopper.c` handles the main pa
 
 Input would look somehing like this:
 
-  Apple 4
-  pear 2
-  cinnamon 18
-  pear -1
-  aPPle 3
+    Apple 4
+    pear 2
+    cinnamon 18
+    pear -1
+    aPPle 3
 
 And the output for which would be:
 
-  APPLE 7
-  PEAR 1
-  CINNAMON 18
+    APPLE 7
+    PEAR 1
+    CINNAMON 18
   
 Worked out okay.
 
